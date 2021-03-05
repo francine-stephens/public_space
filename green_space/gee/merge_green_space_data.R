@@ -15,15 +15,14 @@ packages <- c(
 lapply(packages, library, character.only = T)
 
 ## PATHS
-setwd("~/Projects/public_space/green_space")
+setwd("~/Projects/public_space/green_space/gee")
 wd <- getwd()
 
 # import green space
 temp = list.files(pattern="*.csv")
 list2env(
   lapply(setNames(temp, make.names(gsub("*.csv$", "", temp))), 
-         read_csv, envir = .GlobalEnv)
-  )
+         read.csv), envir = .GlobalEnv)
   
   
 #PREPARE FULL DATASET-----------------------------------------------------------
@@ -37,9 +36,10 @@ EVI10_Cbg10 <- EVI_2010_by_cbg10 %>%
 EVI20_Cbg10 <- EVI_2020_by_cbg10 %>% 
   select(GISJOIN, evi20 = "mean")
 
-EVI_allyears_Cbg10_sf <- cbg_2010 %>%
-  select(GISJOIN, GEOID10) %>%
-  left_join(., EVI90_Cbg10, by = "GISJOIN") %>%
+EVI_allyears_Cbg10 <- EVI90_Cbg10 %>%
   left_join(., EVI00_Cbg10, by = "GISJOIN") %>%
   left_join(., EVI10_Cbg10, by = "GISJOIN") %>%
   left_join(., EVI20_Cbg10, by = "GISJOIN")
+
+#EXPORTS------------------------------------------------------------------------
+saveRDS(EVI_allyears_Cbg10, "evi_all_years_on_2010cbg.rds")
