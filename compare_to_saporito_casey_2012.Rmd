@@ -1,12 +1,19 @@
-#-------------------------------------
-# DESCRIPTIVE ANALYSIS
-# 
-# AUTHOR: FRANCINE STEPHENS
-# DATE CREATED: 3/2/21
-# LAST UPDATED: 3/5/21
-#-------------------------------------
+---
+title: "Green Space & Residential Demographics: A Comparison to Saporito & Casey, 2012"
+author: "Francine Stephens"
+date: "Last Updated: `r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    theme: flatly
+    highlight: espresso
+---
 
-#SET-UP-------------------------------------------------------------------------
+```{r setup, include=F, warning=F, message=F}
+knitr::opts_chunk$set(echo=T)
+
 ## LIBRARIES
 packages <- c(
   "readr",
@@ -40,8 +47,12 @@ places10_path <- "/tl2010_us_place_2010/"
 census_api_key("99ccb52a629609683f17f804ca875115e3f0804c",  overwrite = T)
 Sys.setenv(CENSUS_KEY="99ccb52a629609683f17f804ca875115e3f0804c")
 
+```
 
-## DATA IMPORTS
+
+
+```{r data imports, warning=F, message=F}
+## DATA IMPORTS-----------------------------------------------------------------
 evi_all_decades_cbg <- readRDS(paste0(wd, 
                                       green_space_path,
                                       "evi_all_years_on_2010cbg.rds"))
@@ -71,7 +82,9 @@ top100_cbsa <- read_csv(paste0(shp_repo,
 top100_places <- read_csv(paste0(shp_repo, 
                                  "/top100_places_2010bounds.csv"))
 
+```
 
+```{r pressure, message=F, warning=F}
 #DATA PREPARATION---------------------------------------------------------------
 ## MERGE ALL GEOIDs
 top100_cbsa <- top100_cbsa %>%
@@ -118,39 +131,13 @@ cbg_2010_data_subset <- cbg_geog_evi_race_all_years %>%
 
 cbg_2000_data_subset <- cbg_geog_evi_race_all_years %>%
   select(where(is_numeric) & contains("00") & !contains("top100"))
+```
 
-  ## INSERT 90
-  ## INSERT 20?
+## Race and EVI correlations
 
-## CHANGE SUBSET
-cbg_evi_race_chg <-  cbg_geog_evi_race_all_years %>% 
-  mutate_each(funs(.*10000), starts_with("evi")) %>%
-  mutate(evi_chg_10to20 = (((evi20 - evi10)/evi10) * 100),
-         evi_chg_00to10 = (((evi10 - evi00)/evi00) * 100),
-         evi_chg_90to00 = (((evi00 - evi90)/evi90) * 100),
-         evi_chg_90to20 = (((evi20 - evi90)/evi90) * 100), 
-         WHITE_NH_chg_00to10 = (
-           ((WHITE_NH_10_percent - WHITE_NH_00_percent)/WHITE_NH_00_percent)*100),
-         BLACK_NH_chg_00to10 = (
-           ((BLACK_NH_10_percent - BLACK_NH_00_percent)/BLACK_NH_00_percent)*100),
-         ASIAN_NH_chg_00to10 = (
-           ((ASIAN_NH_10_percent - ASIAN_NH_00_percent)/ASIAN_NH_00_percent)*100),
-         AM_IND_NH_chg_00to10 = (
-           ((AM_IND_NH_10_percent - AM_IND_NH_00_percent)/AM_IND_NH_00_percent)*100),
-         OTHER_RACE_NH_chg_00to10 = (
-           ((OTHER_RACE_NH_10_percent - OTHER_RACE_NH_00_percent)/OTHER_RACE_NH_00_percent)*100),
-         MULTIRACIAL_NH_chg_00to10 = (
-           ((MULTIRACIAL_NH_10_percent - MULTIRACIAL_NH_00_percent)/MULTIRACIAL_NH_00_percent)*100),
-         HISPANIC_chg_00to10 = (
-           ((HISPANIC_10_percent - HISPANIC_00_percent)/HISPANIC_00_percent)*100),
-         TOT_POP_chg_00to10 = (
-           ((TOT_POP_10 - TOT_POP_00)/TOT_POP_00)*100)
-  ) %>%
-  select(where(is_numeric) & contains("_chg_00to10")) 
-is.na(cbg_evi_race_chg) <- sapply(cbg_evi_race_chg, is.infinite)
-is.na(cbg_evi_race_chg) <- sapply(cbg_evi_race_chg, is.nan)
+2010 matches up with Saporito and Casey, who used 2010 ACS data. 
 
-#DESCRIPTIVE STATS--------------------------------------------------------------
+```{r correlation 2010, message=F, warning=F}
 ## CORRELATIONS
 ##2010
 corr10 <-  round(cor(cbg_2010_data_subset, use="complete.obs"), 2)
@@ -164,6 +151,10 @@ ggcorrplot(corr10,
            ggtheme = ggplot2::theme_gray,
            colors = c("#6D9EC1", "white", "#E46726"))
 
+```
+
+2000 correlations included for good measure. 
+```{r correlation 2000}
 ##2000
 corr00 <- round(cor(cbg_2000_data_subset, use="complete.obs"), 2)
 pmat00 <- cor_pmat(cbg_2000_data_subset, use="complete.obs")
@@ -176,7 +167,14 @@ ggcorrplot(corr00,
            ggtheme = ggplot2::theme_gray,
            colors = c("#6D9EC1", "white", "#E46726"))
 
+```
 
+
+Need to address change in GEOIDs for 1990 in order to bring in for comparisons. 
+
+## Green Space Contact by Race
+
+```{r calculate median EVI by race, message=F, warning=F}
 #REPLICATE SAPORITO & CASEY DESCRIPTIVES----------------------------------------
 # COUNTS
 cbg_for_replication <- cbg_all_geoids %>%
@@ -239,6 +237,10 @@ sumstats_race_wtd_evi %>%
     #panel.grid.major.y = element_line(colour = "grey60", linetype = "dashed")
   ) 
 
+```
+
+## EVI Race Group Differences
+```{r mean evi differences between race groups, warning=F, message=F}
 # 2) SUM RACE-WEIGHTED EVI TO PLACES
 race_wtd_evi_summed_to_place <- cbg_for_rep_wtd_evi %>% 
   select(PLACEFP_DERIVED, PLACE_DERIVED_NM, WHITE_NH_10:HISPANIC_10) %>%
@@ -269,32 +271,18 @@ green_exposure_race_diffs_by_place <- race_wtd_evi_summed_to_place %>%
   select(PLACEFP_DERIVED, PLACE_DERIVED_NM, BLACK_WHITE_EVI_DIFF:HISPANIC_ASIAN_EVI_DIFF)
 
 ## EVI DIFFERENCES
-green_exposure_race_diffs_by_place %>%
+knitr::kable(green_exposure_race_diffs_by_place %>%
   ungroup() %>%
   select(-PLACEFP_DERIVED, -PLACE_DERIVED_NM) %>%
-  summarize_all(mean, na.rm=T)
+  summarize_all(mean, na.rm=T), 
+  caption = "EVI Race Group Differences",
+  format.args = list(big.mark = ",")
+)
 
-green_exposure_race_diffs_by_place %>%
-  ungroup() %>%
-  select(-PLACEFP_DERIVED, -PLACE_DERIVED_NM) %>%
-  summarize_all(sd, na.rm=T)
+```
 
-## CREATE A CUT OF ONLY PLACES WITH MORE THAN 25,000 PEOPLE
-places_pop_over25k <- places %>%
-  filter(value > 25000)
-
-green_exposure_race_diffs_by_place %>%
-  filter(PLACEFP_DERIVED %in% places_pop_over25k$GEOID) %>%
-  ungroup() %>%
-  select(-PLACEFP_DERIVED, -PLACE_DERIVED_NM) %>%
-  summarize_all(mean, na.rm=T)
-
-green_exposure_race_diffs_by_place %>%
-  filter(PLACEFP_DERIVED %in% places_pop_over25k$GEOID) %>%
-  ungroup() %>%
-  select(-PLACEFP_DERIVED, -PLACE_DERIVED_NM) %>%
-  summarize_all(sd, na.rm=T)
-
+## Racial Differences in EVI Exposure
+```{r create dissim. measures, message=F, warning=F}
 # CREATE DISIM. MEASURES--------------------------------------------------------
 
 dissim_by_place <- cbg_for_replication %>% 
@@ -312,59 +300,10 @@ full_place_data <- dissim_by_place %>%
   left_join(.,
             green_exposure_race_diffs_by_place,
             by = c("PLACEFP_DERIVED", "PLACE_DERIVED_NM"))
+```
 
+```{r run regression for bw differences, message=F, warning=F}
 reg_bw_diff_evi <- lm(BLACK_WHITE_EVI_DIFF ~ dissim_bw, data=full_place_data)
-summary(reg_bw_diff_evi ) # show results
+summary(reg_bw_diff_evi ) 
 
-
-
-#DESCRIPTIVE STATS--------------------------------------------------------------
-## CBSA
-cbsa10bounds_evi_sumstats <- EVI_allyears_Cbg10_cbsa_sf %>%
-  mutate(evi_chg_10to20 = (((evi20 - evi10)/evi10) * 100),
-         evi_chg_00to10 = (((evi10 - evi00)/evi00) * 100),
-         evi_chg_90to00 = (((evi00 - evi90)/evi90) * 100),
-         evi_chg_90to20 = (((evi20 - evi90)/evi90) * 100)
-         ) %>%
-  group_by(CBSAFP10, NAMELSAD10) %>%
-  summarize(across(starts_with("evi"), ~mean(.x, na.rm = TRUE))
-            ) %>%
-  mutate(metro_area = if_else(str_detect(NAMELSAD10, "Metro Area"),
-                              1,
-                              0)
-  )
-
-  ## View rankings
-cbsa10bounds_evichg_sumstats %>%
-  filter(metro_area == 1) %>% 
-  arrange(-avg_evi_chg_10to20) 
-
-## PLACE
-place10_evi_sumstats <- EVI_allyears_Cbg10_places %>% 
-  mutate(evi_chg_10to20 = (((evi20 - evi10)/evi10) * 100),
-         evi_chg_00to10 = (((evi10 - evi00)/evi00) * 100),
-         evi_chg_90to00 = (((evi00 - evi90)/evi90) * 100),
-         evi_chg_90to20 = (((evi20 - evi90)/evi90) * 100)
-  ) %>%
-  group_by(PLACEFP10, PLACE_NM) %>%
-  summarize(across(starts_with("evi"), ~mean(.x, na.rm = TRUE))
-  ) %>%
-  arrange(-evi_chg_90to20) %>%
-  mutate(top100_places = if_else(PLACEFP10 %in% top100_places_2010$PLACEFP10,
-                                 1, 
-                                 0))
-
-place10_evi_sumstats %>%
-  filter(top100_places == 1) %>%
-  arrange(-evi20)
-
-## VISUALIZATION
-asheville_cbg <- EVI_allyears_Cbg10_cbsa_sf%>%
-  filter(CBSAFP10 == "11700")
-tucson_cbg <- EVI_allyears_Cbg10_cbsa_sf %>%
-  filter(CBSAFP10 ==  "46060")
-
-EVI90_Cbg10_sf %>%
-  filter(GISJOIN %in% tucson_cbg$GISJOIN) %>%
-tm_shape(.) +
-    tm_polygons("mean", palette="Greens")
+```
