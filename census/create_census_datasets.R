@@ -231,7 +231,7 @@ census90_hisp <- census90_red %>%
 
 cw_1990 <- read_csv(paste0(wd, 
                            cw_path, 
-                           cw_1990))
+                           cw_1990_path))
 
 weighted_estimates <- census90_hisp %>%
   left_join(., cw_1990, by = c("GISJOIN" = "GJOIN1990")) %>%
