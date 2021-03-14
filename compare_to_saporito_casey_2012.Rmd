@@ -21,7 +21,10 @@ packages <- c(
   "sf",
   "ggplot2",
   "scales",
+  "units",
   "ggcorrplot",
+  "modelsummary",
+  "stargazer",
   "tmap",
   "tigris",
   "censusapi", 
@@ -43,13 +46,25 @@ metdiv_path <- "/tl_2010_us_metdiv10/"
 cbg10_path <- "/us_blck_grp_2010/"
 places10_path <- "/tl2010_us_place_2010/"
 
-# APIs
+## APIs
 census_api_key("99ccb52a629609683f17f804ca875115e3f0804c",  overwrite = T)
 Sys.setenv(CENSUS_KEY="99ccb52a629609683f17f804ca875115e3f0804c")
 
+## SHAPEFILE IMPORTS
+cbg10 <- st_read(paste0(shp_repo,
+                        shp2010_path,
+                        cbg10_path,
+                        "US_blck_grp_2010.shp"), 
+                 quiet = F)
+
 ```
 
+*Data Sources:*
+Saporito and Casey rely on 2010 5-year ACS estimates at the census block group level for the demographic data. The census block group serves as an approximation to a neighborhood. The race groups considered in the analysis are: non-Hispanic white, non-Hispanic Black, and Hispanic. They limit their analyses to census block groups in census places with more than 25,000 residents. 
 
+To measure green space, the authors draw upon satellite imagery from Landsat 7. They use the normalized difference vegetation index (NDVI) as an indicator of live green vegetation. NDVI is calculated from the visible and near-infrared light reflected by vegetation. Nearly all satellite Vegetation Indices employ this difference formula to quantify the density of plant growth on the Earth. Specifically, NDVI takes the subtracts the amount of visible radiation from the amount of near-infrared radiation and divides the difference by the sum of near-infrared radiation and visible radiation. Each pixel always takes on a number that ranges from -1 to +1. A zero means no vegetation and a value close to +1 (0.8 - 0.9) indicates the highest possible density of green vegetation. 
+
+I use data from the 2010 U.S. Census as well as satellite imagery from the USGS Landsat 7 Collection in the summer of 2010. The demographic variables are the same as those used in Saporito and Casey's analysis. I also use both NDVI and EVI - Enhanced Vegetation Index - as measures of green space. EVI is a higher resolution measure than NDVI and will capture smaller patches of vegetation, such as a small cluster of trees or a pocket park like those found in cities. 
 
 ```{r data imports, warning=F, message=F}
 ## DATA IMPORTS-----------------------------------------------------------------
@@ -57,15 +72,13 @@ evi_all_decades_cbg <- readRDS(paste0(wd,
                                       green_space_path,
                                       "evi_all_years_on_2010cbg.rds"))
 
+ndvi_2010_cbg <- read_csv(paste0(wd,
+                                 green_space_path,
+                                 "NDVI_2010_by_cbg10.csv"))
+
 race_all_decades_cbg <- readRDS(paste0(wd, 
                          census_data_path, 
                          "/all_decades_race_on_cbg10.rds"))
-
-cbg10 <- st_read(paste0(shp_repo,
-                        shp2010_path,
-                        cbg10_path,
-                        "US_blck_grp_2010.shp"), 
-                 quiet = F)
 
 counties <- get_decennial(geography = "county", 
                           variables = "P001001", 
@@ -84,7 +97,7 @@ top100_places <- read_csv(paste0(shp_repo,
 
 ```
 
-```{r pressure, message=F, warning=F}
+```{r data prep, message=F, warning=F}
 #DATA PREPARATION---------------------------------------------------------------
 ## MERGE ALL GEOIDs
 top100_cbsa <- top100_cbsa %>%
@@ -113,6 +126,15 @@ cbg_all_geoids <- cbg10 %>%
   left_join(., top100_places, by=c("PLACEID"="PLACEFP")) %>%
   left_join(., top100_cbsa, by=c("CBSAFP10"="CBSAFP")) 
 
+cbg_area <- cbg10 %>%
+  select(GEOID10) %>%
+  mutate(area = st_area(.),
+         area = as.numeric(set_units(area, mi^2))
+         ) %>%
+  st_set_geometry(NULL)
+
+ndvi_2010_cbg <- ndvi_2010_cbg %>%
+  select(GEOID10, GISJOIN, ndvi10 = "mean")
 ## MERGE ALL DEMOGRAPHIC & GREEN SPACE DATA
 
 # PERCENT
@@ -123,24 +145,27 @@ race_pct_all_decades_cbg <- race_all_decades_cbg %>%
 
 cbg_geog_evi_race_all_years <- cbg_all_geoids %>%
   left_join(., evi_all_decades_cbg, by="GISJOIN") %>%
-  left_join(., race_pct_all_decades_cbg, by=c("GEOID10"="CBG_10"))
+  left_join(., race_pct_all_decades_cbg, by=c("GEOID10"="CBG_10")) %>% 
+  left_join(., ndvi_2010_cbg, by=c("GEOID10"))
 
 ## DECADE SUBSETS
 cbg_2010_data_subset <- cbg_geog_evi_race_all_years %>%
-  select(where(is_numeric) & contains("10") & !contains("top100"))
+  left_join(., cbg_area, by="GEOID10") %>% 
+  mutate(POP_DENS_10 = TOT_POP_10/area) %>%
+  select(where(is_numeric) & contains("10") & !contains("top100")) 
 
 cbg_2000_data_subset <- cbg_geog_evi_race_all_years %>%
   select(where(is_numeric) & contains("00") & !contains("top100"))
 ```
 
-## Race and EVI correlations
+## Correlations
 
-2010 matches up with Saporito and Casey, who used 2010 ACS data. 
+Saporito and Casey do not include correlations in their paper, but they mention that the strongest correlation is between a place's share of Hispanic residents and NDVI.
 
 ```{r correlation 2010, message=F, warning=F}
 ## CORRELATIONS
 ##2010
-corr10 <-  round(cor(cbg_2010_data_subset, use="complete.obs"), 2)
+corr10 <-  round(cor(cbg_2010_data_subset, use="complete.obs"), 1)
 pmat10 <- cor_pmat(cbg_2010_data_subset, use="complete.obs")
 
 ggcorrplot(corr10,
@@ -152,95 +177,40 @@ ggcorrplot(corr10,
            colors = c("#6D9EC1", "white", "#E46726"))
 
 ```
-
-2000 correlations included for good measure. 
-```{r correlation 2000}
-##2000
-corr00 <- round(cor(cbg_2000_data_subset, use="complete.obs"), 2)
-pmat00 <- cor_pmat(cbg_2000_data_subset, use="complete.obs")
-
-ggcorrplot(corr00,
-           hc.order=T,
-           type="lower",
-           lab=T,
-           #p.mat = pmat00,
-           ggtheme = ggplot2::theme_gray,
-           colors = c("#6D9EC1", "white", "#E46726"))
-
-```
+* NDVI and EVI have almost a perfect correlation (correlations are rounded in the graphic above).
+* NDVI/EVI is most positively correlated with the share of non-Hispanic whites in a neighborhood.
+* NDVI/EVI is most strongly negatively correlated with the share of Hispanic residents in a neighborhoods. 
+* Increasing population density is associated with lower NDVI/EVI in a neighborhood. This negative association is second in magnitude to the Hispanic-NDVI/EVI association. 
+* The share of Asian residents is also moderately negatively correlated with EVI/NDVI levels. 
+* The percent of Black residents at the neighborhood level is very weakly negatively associated with EVI/NDVI levels. 
 
 
-Need to address change in GEOIDs for 1990 in order to bring in for comparisons. 
+## EVI Race Group Differences
 
-## Green Space Contact by Race
+Following Saporito and Casey's analytic approach of assessing differences in green space within the same city, I construct their verdancy exposure for each racial group by city. This race-group verdancy exposure measure involves several steps. First, I multiplied the NDVI and EVI values by a factor of 10,000 for ease of comparison. Then, I computed race weighted vegetation exposure by multiplying EVI by each race group's total count (code for each step is shown below). 
 
-```{r calculate median EVI by race, message=F, warning=F}
+```{r calculate weighted EVI and NDVI, message=F, warning=F}
 #REPLICATE SAPORITO & CASEY DESCRIPTIVES----------------------------------------
-# COUNTS
+# 1) WEIGHT EVI AND NDVI BY RACE
 cbg_for_replication <- cbg_all_geoids %>%
   left_join(., race_all_decades_cbg, by=c("GEOID10"="CBG_10"))  %>%
-  left_join(., evi_all_decades_cbg, by="GISJOIN") %>%
+  left_join(., evi_all_decades_cbg, by="GISJOIN") %>% 
+  left_join(., ndvi_2010_cbg, by="GEOID10") %>%
   select(-TOT_POP_00:-evi00, -evi20)
 
 cbg_for_rep_wtd_evi <- cbg_for_replication %>%
   mutate(evi10 = evi10 * 10000) %>%
   mutate_each(funs(.*evi10), ends_with("_10"))
   
-sumstats_race_wtd_evi <- cbg_for_rep_wtd_evi %>%
-  select(TOT_POP_10:HISPANIC_10) %>%
-  summarise_all(list(mean=mean, sd=sd, median=median), na.rm=T)
-
-sumstats_race_wtd_evi_mean <- cbg_for_rep_wtd_evi %>%
-  select(TOT_POP_10:HISPANIC_10) %>%
-  summarise_all(mean, na.rm=T) %>%
-  mutate(statistic = "mean")
-
-sumstats_race_wtd_evi_sd <- cbg_for_rep_wtd_evi %>%
-  select(TOT_POP_10:HISPANIC_10) %>%
-  summarise_all(sd, na.rm=T) %>%
-  mutate(statistic = "sd")
-
-sumstats_race_wtd_evi_med <- cbg_for_rep_wtd_evi %>%
-  select(TOT_POP_10:HISPANIC_10) %>%
-  summarise_all(median, na.rm=T) %>%
-  mutate(statistic = "median")
-
-sumstats_race_wtd_evi <- rbind(
-  sumstats_race_wtd_evi_mean,
-  sumstats_race_wtd_evi_sd, 
-  sumstats_race_wtd_evi_med) %>%
-  relocate(statistic) %>%
-  select(-TOT_POP_10) %>%
-  pivot_longer(
-    ends_with("_10"),
-    names_to = "race",
-    values_to = "value")
-  
-# GRAPH OF CONTACT WITH GREEN SPACE BY RACE
-sumstats_race_wtd_evi %>% 
-  filter(statistic == "median") %>% 
-  ggplot(., aes(x = value, y = reorder(race, value), label = comma(value, accuracy=1))) +
-  geom_segment(aes(yend = race), xend = 0, colour = "grey80") +
-  geom_point(size = 4, aes(color=factor(race)), alpha=0.6) + #color = "red"
-  scale_colour_brewer(palette = "Set2") +
-  geom_text(size = 2.5, vjust= -0.5, fontface = "bold") +  
-  labs(title = "Median EVI by Race",
-       x = "Median EVI",
-       y = "",
-       color = "Race",
-       caption = "EVI calculated using Landsat 7 imagery") + 
-  scale_x_continuous(labels = scales::comma, breaks=pretty_breaks(n=10)) +
-  theme_classic() +
-  theme(
-    panel.grid.major.y = element_blank(),
-    axis.text.x = element_text(angle = 90, hjust=0),
-    #panel.grid.major.y = element_line(colour = "grey60", linetype = "dashed")
-  ) 
+cbg_for_rep_wtd_ndvi <- cbg_for_replication %>%
+  mutate(ndvi10 = ndvi10 * 10000) %>%
+  mutate_each(funs(.*ndvi10), ends_with("_10"))
 
 ```
 
-## EVI Race Group Differences
-```{r mean evi differences between race groups, warning=F, message=F}
+Next, I aggregated the race-weighted green space values from census block group to places. All census block groups that are not a city or census designated place were treated as county-non-incorporated places. Thus all census block groups were included in the analysis. 
+
+```{r compute race-weighted green space, warning=F, message=F}
 # 2) SUM RACE-WEIGHTED EVI TO PLACES
 race_wtd_evi_summed_to_place <- cbg_for_rep_wtd_evi %>% 
   select(PLACEFP_DERIVED, PLACE_DERIVED_NM, WHITE_NH_10:HISPANIC_10) %>%
@@ -248,7 +218,19 @@ race_wtd_evi_summed_to_place <- cbg_for_rep_wtd_evi %>%
   summarize_all(sum, na.rm=T) %>%
   rename_at(vars(-PLACEFP_DERIVED, -PLACE_DERIVED_NM),function(x) paste0(x,"_EVI"))
 
+race_wtd_ndvi_summed_to_place <- cbg_for_rep_wtd_ndvi %>% 
+  select(PLACEFP_DERIVED, PLACE_DERIVED_NM, WHITE_NH_10:HISPANIC_10) %>%
+  group_by(PLACEFP_DERIVED, PLACE_DERIVED_NM) %>%
+  summarize_all(sum, na.rm=T) %>%
+  rename_at(vars(-PLACEFP_DERIVED, -PLACE_DERIVED_NM),function(x) paste0(x,"_NDVI"))
 
+```
+
+Finally, the race-weighted green-space measures were divided by the total number of residents belonging to the given race group to give an average racial-green space exposure. Racial groups' green-space exposure levels were compared by subtracting two groups weighted verdancy scores. 
+
+Tables 1 and 2 below include summary statistics for the verdancy exposure differences. 
+
+```{r divide race wtd green space by totals, warning=F, message=F}
 # 3) DIVIDE RACE-WEIGHTED EVI BY TOTAL # RACE IN PLACE
 race_counts_per_place <- cbg_for_replication %>%
   select(PLACEFP_DERIVED, PLACE_DERIVED_NM, WHITE_NH_10:HISPANIC_10) %>%
@@ -270,18 +252,84 @@ green_exposure_race_diffs_by_place <- race_wtd_evi_summed_to_place %>%
          ) %>%
   select(PLACEFP_DERIVED, PLACE_DERIVED_NM, BLACK_WHITE_EVI_DIFF:HISPANIC_ASIAN_EVI_DIFF)
 
+NDVI_exposure_race_diffs_by_place <- race_wtd_ndvi_summed_to_place %>%
+  left_join(., race_counts_per_place, by = c("PLACEFP_DERIVED", "PLACE_DERIVED_NM")) %>%
+  mutate(WHITE_NH_NDVI = WHITE_NH_10_NDVI/WHITE_NH_10,
+         BLACK_NH_NDVI = BLACK_NH_10_NDVI/BLACK_NH_10,
+         ASIAN_NH_NDVI = ASIAN_NH_10_NDVI/ASIAN_NH_10,
+         HISPANIC_NDVI = HISPANIC_10_NDVI/HISPANIC_10) %>%
+  mutate(BLACK_WHITE_NDVI_DIFF = (BLACK_NH_NDVI - WHITE_NH_NDVI),
+         ASIAN_WHITE_NDVI_DIFF = (ASIAN_NH_NDVI - WHITE_NH_NDVI),
+         HISPANIC_WHITE_NDVI_DIFF = (HISPANIC_NDVI - WHITE_NH_NDVI),
+         BLACK_ASIAN_NDVI_DIFF = (BLACK_NH_NDVI - ASIAN_NH_NDVI),
+         BLACK_HISPANIC_NDVI_DIFF = (BLACK_NH_NDVI - HISPANIC_NDVI),
+         HISPANIC_ASIAN_NDVI_DIFF = (HISPANIC_NDVI - ASIAN_NH_NDVI)
+         ) %>%
+  select(PLACEFP_DERIVED, PLACE_DERIVED_NM, BLACK_WHITE_NDVI_DIFF:HISPANIC_ASIAN_NDVI_DIFF)
+
 ## EVI DIFFERENCES
-knitr::kable(green_exposure_race_diffs_by_place %>%
+green_exposure_race_diffs_by_place %>%
   ungroup() %>%
-  select(-PLACEFP_DERIVED, -PLACE_DERIVED_NM) %>%
-  summarize_all(mean, na.rm=T), 
-  caption = "EVI Race Group Differences",
-  format.args = list(big.mark = ",")
-)
+  select(BLACK_WHITE_EVI_DIFF:HISPANIC_WHITE_EVI_DIFF) %>%
+  datasummary((`Black-White`=BLACK_WHITE_EVI_DIFF) + 
+                (`Asian-White`=ASIAN_WHITE_EVI_DIFF) + 
+                (`Hispanic-White`=HISPANIC_WHITE_EVI_DIFF) ~ 
+                Mean + SD + Median + Min + Max,
+              fmt=2, 
+              data = .,
+              title = 'Table 1: Summary of Race-Weighted EVI Differences',
+              output = 'markdown'
+  )
 
 ```
 
+Like Saporito and Casey's study, white people tend to live in neighborhoods with a higher average verdancy score than the Black, Hispanic, and Asian people. The average differences are quite modest. However, there is substantial variation across places, especially for the Black-white comparison. For instance, in La Grange - a suburb of Chicago, Illinois - on average, whites live in neighborhoods with verdancy exposure that is 1,333 greater than Black residents. By contrast, in the city of Baltimore, black residents lived in neighborhoods with average verdancy scores that are 1,093 greater than whites.
+
+
+```{r ndvi differences table, message=F, warning=F}
+## NDVI DIFFERENCES
+NDVI_exposure_race_diffs_by_place %>%
+  ungroup() %>%
+  select(BLACK_WHITE_NDVI_DIFF:HISPANIC_WHITE_NDVI_DIFF) %>%
+  datasummary((`Black-White`=BLACK_WHITE_NDVI_DIFF) + 
+                (`Asian-White`=ASIAN_WHITE_NDVI_DIFF) + 
+                   (`Hispanic-White`=HISPANIC_WHITE_NDVI_DIFF) ~ 
+                Mean + SD + Median + Min + Max,
+              fmt=2, 
+              data = .,
+              title = 'Table 2: Summary of Race-Weighted NDVI Differences',
+              output = 'markdown'
+  )
+
+```
+
+The differences based on NDVI, shown in Table 2, look very similar to those based on EVI in Table 1. 
+
+
 ## Racial Differences in EVI Exposure
+I have attempted to replicate the regression analyses featured in Saporito and Casey's paper. I constructed segregation measures using the disimilarity index as they did for Hispanic-white and Black-white comparisons. I also included most of the control variables they used: population (in 1,000s), population density (1,000 people per square mile), percent Black, and percent Hispanic. I did not include the poverty segregation measure as a covariate because the 2010 census does not include poverty/socioeconomic status. 
+
+```{r calculate covariates, message=F, warning=F}
+## CONSTRUCT COVARIATES
+evi_place_pop_percent_covars <- cbg_for_replication %>% 
+  group_by(PLACEFP_DERIVED, PLACE_DERIVED_NM) %>%
+  summarize(TOT_POP_10 = sum(TOT_POP_10, na.rm=F)) %>%
+  left_join(., race_counts_per_place, by = c("PLACEFP_DERIVED", "PLACE_DERIVED_NM")) %>%
+  select(PLACEFP_DERIVED, PLACE_DERIVED_NM, TOT_POP_10, BLACK_NH_10, HISPANIC_10) %>%
+  mutate_each(funs(./1000), ends_with("_10")) %>%
+  rename(TOT_POP_1000S="TOT_POP_10") %>%
+  mutate_at(c("BLACK_NH_10", "HISPANIC_10"), funs("percent" = (./TOT_POP_1000S) * 100))
+
+evi_place_pop_percent_popdens_covars <- cbg_for_replication %>% 
+  select(GEOID10:PLACE_DERIVED_NM) %>%
+  left_join(., cbg_area, by = "GEOID10") %>% 
+  group_by(PLACEFP_DERIVED, PLACE_DERIVED_NM) %>%
+  summarize(area_sqmi = sum(area)) %>%
+  left_join(., evi_place_pop_percent_covars, by = c("PLACEFP_DERIVED", "PLACE_DERIVED_NM")) %>%
+  mutate(pop_dens_1000s=TOT_POP_1000S/area_sqmi)
+
+```
+
 ```{r create dissim. measures, message=F, warning=F}
 # CREATE DISIM. MEASURES--------------------------------------------------------
 
@@ -294,16 +342,103 @@ dissim_by_place <- cbg_for_replication %>%
   group_by(PLACEFP_DERIVED, PLACE_DERIVED_NM) %>%
   summarise(dissim_bw= .5*sum(diss_bw, na.rm=T),
             dissim_hw= .5*sum(diss_hw, na.rm=T)
-            )
+            ) %>% 
+  mutate_at(vars(dissim_bw:dissim_hw),
+            .funs = funs(. * 100))
 
 full_place_data <- dissim_by_place %>%
   left_join(.,
             green_exposure_race_diffs_by_place,
+            by = c("PLACEFP_DERIVED", "PLACE_DERIVED_NM")) %>%
+  left_join(.,
+            evi_place_pop_percent_popdens_covars,
             by = c("PLACEFP_DERIVED", "PLACE_DERIVED_NM"))
+
+full_place_NDVI <- dissim_by_place %>%
+  left_join(., 
+            NDVI_exposure_race_diffs_by_place,
+            by = c("PLACEFP_DERIVED", "PLACE_DERIVED_NM")) %>%
+  left_join(.,
+            evi_place_pop_percent_popdens_covars,
+            by = c("PLACEFP_DERIVED", "PLACE_DERIVED_NM"))
+
 ```
 
-```{r run regression for bw differences, message=F, warning=F}
-reg_bw_diff_evi <- lm(BLACK_WHITE_EVI_DIFF ~ dissim_bw, data=full_place_data)
-summary(reg_bw_diff_evi ) 
+The regression analyses mirror Saporito and Casey's results (see Table 2 in their paper). There are strong correlations between racial segregation and disparities in exposure to green space. 
+
+```{r regressions for bw differences, message=F, warning=F, results ='asis'}
+## Regressions Predicting Black-White Green Space Differences
+m1_bw_evi <- lm(BLACK_WHITE_EVI_DIFF ~ dissim_bw, data=full_place_data)
+m2_bw_evi <-  lm(BLACK_WHITE_EVI_DIFF ~ dissim_bw + 
+                TOT_POP_1000S + 
+                BLACK_NH_10_percent + 
+                HISPANIC_10_percent + 
+                pop_dens_1000s, 
+              data=full_place_data
+  )
+
+m3_bw_ndvi <- lm(BLACK_WHITE_NDVI_DIFF ~ dissim_bw, data=full_place_NDVI)
+m4_bw_ndvi <- lm(BLACK_WHITE_NDVI_DIFF ~ dissim_bw + 
+                                TOT_POP_1000S + 
+                                BLACK_NH_10_percent + 
+                                HISPANIC_10_percent + 
+                                pop_dens_1000s, 
+                              data=full_place_NDVI)
+
+stargazer(m1_bw_evi, m2_bw_evi, m3_bw_ndvi, m4_bw_ndvi, type="html",
+          title="Table 3: Regression of Black-White Difference in Exposure to Green Space",
+          dep.var.caption = "Green Space Exposure",
+          covariate.labels=c("Black-White Dissimilarity", 
+                             "Total Population (1,000s)", 
+                              "Percent Black",
+                              "Percent Hispanic",
+                              "People per Square Mile (1,000s)"),
+          dep.var.labels=c("EVI", "NDVI"),
+          single.row=T)
+```
+
+For every one point increase in Black-white segregation, the Black-white difference in exposure to green space favors whites by about 3.7 points. This strength of the relationship holds across both EVI and NDVI as well as when the control variables are added. 
+
+
+```{r regressions for hisp-white difference, message=F, warning=F, results ='asis'}
+## Regressions Predicting Black-White Green Space Differences
+m1_hw_evi <- lm(HISPANIC_WHITE_EVI_DIFF ~ dissim_hw, data=full_place_data)
+m2_hw_evi <- lm(HISPANIC_WHITE_EVI_DIFF ~ dissim_hw + 
+                  TOT_POP_1000S + 
+                  BLACK_NH_10_percent + 
+                  HISPANIC_10_percent + 
+                  pop_dens_1000s, 
+                data=full_place_data
+  )
+
+m3_hw_ndvi <- lm(HISPANIC_WHITE_NDVI_DIFF ~ dissim_hw, data=full_place_NDVI)
+m4_hw_ndvi <- lm(HISPANIC_WHITE_NDVI_DIFF ~ dissim_hw + 
+                                TOT_POP_1000S + 
+                                BLACK_NH_10_percent + 
+                                HISPANIC_10_percent + 
+                                pop_dens_1000s, 
+                              data=full_place_NDVI)
+
+stargazer(m1_hw_evi, m2_hw_evi, m3_hw_ndvi, m4_hw_ndvi, type="html",
+          title="Table 4: Regression of Hispanic-White Difference in Exposure to Green Space",
+          dep.var.caption = "Green Space Exposure",
+          covariate.labels=c("Hispanic-White Dissimilarity", 
+                             "Total Population (1,000s)", 
+                              "Percent Black",
+                              "Percent Hispanic",
+                              "People per Square Mile (1,000s)"),
+          dep.var.labels=c("EVI","NDVI"),
+          single.row=T)
 
 ```
+
+For every one point increase in Hispanic-white segregation, the Hispanic-white difference in exposure to green space favors whites by 4.9 points. As above, the disparity holds across verdancy measures and with the control variables added. Like Saporito and Casey's regressions, the disparity is greater in magnitude for Hispanics than Blacks. 
+
+
+**Takeaways for next analyses:**
+
+* The verdancy measure - EVI or NDVI - does not seem to make a big difference in the results. 
+* Differences by race appear to be greatest between Hispanics and whites, followed by Blacks and whites, and then Asians and whites (not shown here). 
+* Including non-census designated places as non-CDP county places does not drastically change the results. 
+
+
