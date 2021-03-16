@@ -41,5 +41,20 @@ EVI_allyears_Cbg10 <- EVI90_Cbg10 %>%
   left_join(., EVI10_Cbg10, by = "GISJOIN") %>%
   left_join(., EVI20_Cbg10, by = "GISJOIN")
 
+
+EVI_area_90 <- EVI_1990_by_cbg10_AREA %>%
+  select(GISJOIN, area90 = "sum")
+EVI_area_00 <- EVI_2000_by_cbg10_AREA %>%
+  select(GISJOIN, area00 = "sum")
+EVI_area_10 <- EVI_2010_by_cbg10_AREA %>%
+  select(GISJOIN, area10 = "sum")
+
+EVI_area_all_years <- EVI_area_90 %>%
+  left_join(., EVI_area_00, by = "GISJOIN") %>%
+  left_join(., EVI_area_10, by = "GISJOIN") %>%
+  mutate_at(vars(starts_with("area")), ~./2589988.1103)
+  
+  
 #EXPORTS------------------------------------------------------------------------
 saveRDS(EVI_allyears_Cbg10, "evi_all_years_on_2010cbg.rds")
+saveRDS(EVI_area_all_years, "evi_area_all_years_on_2010cbg.rds")
