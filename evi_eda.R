@@ -46,6 +46,10 @@ evi_all_decades_cbg <- readRDS(paste0(wd,
                                       green_space_path,
                                       "evi_all_years_on_2010cbg.rds"))
 
+evi_area_all_decades_cbg <- readRDS(paste0(wd,
+                                           green_space_path,
+                                           "evi_area_all_years_on_2010cbg.rds"))
+
 race_all_decades_cbg <- readRDS(paste0(wd, 
                          census_data_path, 
                          "/all_decades_race_on_cbg10.rds"))
@@ -110,7 +114,10 @@ race_pct_all_decades_cbg <- race_all_decades_cbg %>%
 
 cbg_geog_evi_race_all_years <- cbg_all_geoids %>%
   left_join(., evi_all_decades_cbg, by="GISJOIN") %>%
-  left_join(., race_pct_all_decades_cbg, by=c("GEOID10"="CBG_10"))
+  left_join(., race_pct_all_decades_cbg, by=c("GEOID10"="CBG_10")) %>%
+  left_join(., evi_area_all_decades_cbg, by="GISJOIN")
+
+
 
 ## DECADE SUBSETS
 cbg_2010_data_subset <- cbg_geog_evi_race_all_years %>%
@@ -129,6 +136,8 @@ cbg_evi_race_chg <-  cbg_geog_evi_race_all_years %>%
          evi_chg_00to10 = (((evi10 - evi00)/evi00) * 100),
          evi_chg_90to00 = (((evi00 - evi90)/evi90) * 100),
          evi_chg_90to20 = (((evi20 - evi90)/evi90) * 100), 
+         evi_area_chg_90to10 = (((area10 - area90)/area90) * 100),
+         evi_area_chg_00to10 = (((area10 - area00)/area00) * 100),
          WHITE_NH_chg_00to10 = (
            ((WHITE_NH_10_percent - WHITE_NH_00_percent)/WHITE_NH_00_percent)*100),
          BLACK_NH_chg_00to10 = (
@@ -319,44 +328,68 @@ summary(reg_bw_diff_evi ) # show results
 
 
 #DESCRIPTIVE STATS--------------------------------------------------------------
-## CBSA
+
+
+###########
+# PLACE
+###########
+place10_evi_sumstats <- cbg_geog_evi_race_all_years %>% 
+  group_by(PLACEFP_DERIVED, PLACE_DERIVED_NM) %>% 
+  summarize(across(starts_with("evi"), ~mean(.x, na.rm = TRUE)),
+            across(starts_with("area"), ~sum(.x, na.rm = TRUE)),
+            across(ends_with("percent"), ~mean(.x, na.rm = TRUE))
+  ) #%>%
+  mutate(evi_chg_10to20 = (((evi20 - evi10)/evi10) * 100),
+         evi_chg_00to10 = (((evi10 - evi00)/evi00) * 100),
+         evi_chg_90to00 = (((evi00 - evi90)/evi90) * 100),
+         evi_chg_90to20 = (((evi20 - evi90)/evi90) * 100)
+  ) 
+  #arrange(-evi_chg_90to20) %>%
+ # mutate(top100_places = if_else(PLACEFP10 %in% top100_places_2010$PLACEFP10, 1, 0))
+place_for_corrs <- place10_evi_sumstats %>%
+  ungroup() %>%
+  select(where(is.numeric))
+corrplace <-  round(cor(place_for_corrs, use="complete.obs"), 2)
+pmatplace <- cor_pmat(place_for_corrs, use="complete.obs")
+  
+  ggcorrplot(corrplace,
+             hc.order=T,
+             type="lower",
+             lab=T,
+             #p.mat = pmat10,
+             ggtheme = ggplot2::theme_gray,
+             colors = c("#6D9EC1", "white", "#E46726"))
+  
+  
+place10_evi_sumstats %>%
+  filter(top100_places == 1) %>%
+  arrange(-evi20)
+
+
+#############
+# CBSA
+#############
 cbsa10bounds_evi_sumstats <- EVI_allyears_Cbg10_cbsa_sf %>%
   mutate(evi_chg_10to20 = (((evi20 - evi10)/evi10) * 100),
          evi_chg_00to10 = (((evi10 - evi00)/evi00) * 100),
          evi_chg_90to00 = (((evi00 - evi90)/evi90) * 100),
          evi_chg_90to20 = (((evi20 - evi90)/evi90) * 100)
-         ) %>%
+  ) %>%
   group_by(CBSAFP10, NAMELSAD10) %>%
   summarize(across(starts_with("evi"), ~mean(.x, na.rm = TRUE))
-            ) %>%
+  ) %>%
   mutate(metro_area = if_else(str_detect(NAMELSAD10, "Metro Area"),
                               1,
                               0)
   )
 
-  ## View rankings
+## View rankings
 cbsa10bounds_evichg_sumstats %>%
   filter(metro_area == 1) %>% 
   arrange(-avg_evi_chg_10to20) 
 
-## PLACE
-place10_evi_sumstats <- EVI_allyears_Cbg10_places %>% 
-  mutate(evi_chg_10to20 = (((evi20 - evi10)/evi10) * 100),
-         evi_chg_00to10 = (((evi10 - evi00)/evi00) * 100),
-         evi_chg_90to00 = (((evi00 - evi90)/evi90) * 100),
-         evi_chg_90to20 = (((evi20 - evi90)/evi90) * 100)
-  ) %>%
-  group_by(PLACEFP10, PLACE_NM) %>%
-  summarize(across(starts_with("evi"), ~mean(.x, na.rm = TRUE))
-  ) %>%
-  arrange(-evi_chg_90to20) %>%
-  mutate(top100_places = if_else(PLACEFP10 %in% top100_places_2010$PLACEFP10,
-                                 1, 
-                                 0))
 
-place10_evi_sumstats %>%
-  filter(top100_places == 1) %>%
-  arrange(-evi20)
+
 
 ## VISUALIZATION
 asheville_cbg <- EVI_allyears_Cbg10_cbsa_sf%>%
