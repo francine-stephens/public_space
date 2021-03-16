@@ -110,7 +110,8 @@ cbg_all_geoids <- cbg10 %>%
 race_pct_all_decades_cbg <- race_all_decades_cbg %>%
   mutate_at(vars(WHITE_NH_10:HISPANIC_10), funs("percent" = (./TOT_POP_10) * 100)) %>%
   mutate_at(vars(WHITE_NH_00:HISPANIC_00), funs("percent" = (./TOT_POP_00) * 100)) %>%
-    select(CBG_10, TOT_POP_10, TOT_POP_00, WHITE_NH_10_percent:HISPANIC_00_percent)
+  mutate_at(vars(WHITE_NH_90:HISPANIC_90), funs("percent" = (./TOT_POP_90) * 100)) %>%
+    select(CBG_10, TOT_POP_10, TOT_POP_00, TOT_POP_90, WHITE_NH_10_percent:HISPANIC_90_percent)
 
 cbg_geog_evi_race_all_years <- cbg_all_geoids %>%
   left_join(., evi_all_decades_cbg, by="GISJOIN") %>%
@@ -126,36 +127,47 @@ cbg_2010_data_subset <- cbg_geog_evi_race_all_years %>%
 cbg_2000_data_subset <- cbg_geog_evi_race_all_years %>%
   select(where(is_numeric) & contains("00") & !contains("top100"))
 
-  ## INSERT 90
+cbg_1990_data_subset <- cbg_geog_evi_race_all_years %>%
+  select(where(is_numeric) & contains("90") & !contains("top100"))
   ## INSERT 20?
 
 ## CHANGE SUBSET
 cbg_evi_race_chg <-  cbg_geog_evi_race_all_years %>% 
   mutate_each(funs(.*10000), starts_with("evi")) %>%
+<<<<<<< HEAD
   mutate(evi_chg_10to20 = (((evi20 - evi10)/evi10) * 100),
          evi_chg_00to10 = (((evi10 - evi00)/evi00) * 100),
          evi_chg_90to00 = (((evi00 - evi90)/evi90) * 100),
          evi_chg_90to20 = (((evi20 - evi90)/evi90) * 100), 
          evi_area_chg_90to10 = (((area10 - area90)/area90) * 100),
          evi_area_chg_00to10 = (((area10 - area00)/area00) * 100),
+=======
+  mutate(evi_chg_10to20 = (((evi20 - evi10)/evi10)),
+         evi_chg_00to10 = (((evi10 - evi00)/evi00)),
+         evi_chg_90to00 = (((evi00 - evi90)/evi90)),
+         evi_chg_90to20 = (((evi20 - evi90)/evi90)), 
+>>>>>>> f10a04ecfa524b97e8646e01759a62da3e0d2fd9
          WHITE_NH_chg_00to10 = (
            ((WHITE_NH_10_percent - WHITE_NH_00_percent)/WHITE_NH_00_percent)*100),
          BLACK_NH_chg_00to10 = (
            ((BLACK_NH_10_percent - BLACK_NH_00_percent)/BLACK_NH_00_percent)*100),
          ASIAN_NH_chg_00to10 = (
            ((ASIAN_NH_10_percent - ASIAN_NH_00_percent)/ASIAN_NH_00_percent)*100),
-         AM_IND_NH_chg_00to10 = (
-           ((AM_IND_NH_10_percent - AM_IND_NH_00_percent)/AM_IND_NH_00_percent)*100),
-         OTHER_RACE_NH_chg_00to10 = (
-           ((OTHER_RACE_NH_10_percent - OTHER_RACE_NH_00_percent)/OTHER_RACE_NH_00_percent)*100),
-         MULTIRACIAL_NH_chg_00to10 = (
-           ((MULTIRACIAL_NH_10_percent - MULTIRACIAL_NH_00_percent)/MULTIRACIAL_NH_00_percent)*100),
          HISPANIC_chg_00to10 = (
            ((HISPANIC_10_percent - HISPANIC_00_percent)/HISPANIC_00_percent)*100),
          TOT_POP_chg_00to10 = (
-           ((TOT_POP_10 - TOT_POP_00)/TOT_POP_00)*100)
-  ) %>%
-  select(where(is_numeric) & contains("_chg_00to10")) 
+           ((TOT_POP_10 - TOT_POP_00)/TOT_POP_00)*100),
+         TOT_POP_chg_90to10 = (
+           ((TOT_POP_10 - TOT_POP_90)/TOT_POP_90)*100),
+         WHITE_NH_chg_90to10 = (
+           ((WHITE_NH_10_percent - WHITE_NH_90_percent)/WHITE_NH_90_percent)*100),
+         BLACK_NH_chg_90to10 = (
+           ((BLACK_NH_10_percent - BLACK_NH_90_percent)/BLACK_NH_90_percent)*100),
+         ASIAN_NH_chg_90to10 = (
+           ((ASIAN_NH_10_percent - ASIAN_NH_90_percent)/ASIAN_NH_90_percent)*100),
+         HISPANIC_chg_90to10 = (
+           ((HISPANIC_10_percent - HISPANIC_90_percent)/HISPANIC_90_percent)*100)
+  )  
 is.na(cbg_evi_race_chg) <- sapply(cbg_evi_race_chg, is.infinite)
 is.na(cbg_evi_race_chg) <- sapply(cbg_evi_race_chg, is.nan)
 
@@ -185,6 +197,17 @@ ggcorrplot(corr00,
            ggtheme = ggplot2::theme_gray,
            colors = c("#6D9EC1", "white", "#E46726"))
 
+##CHANGE --- NOT INFORMATIVE
+corrchg <-  round(cor(cbg_evi_race_chg, use="complete.obs"), 2)
+pmatchg <- cor_pmat(cbg_evi_race_chg, use="complete.obs")
+
+ggcorrplot(corrchg,
+           hc.order=T,
+           type="lower",
+           lab=T,
+           p.mat = pmatchg,
+           ggtheme = ggplot2::theme_gray,
+           colors = c("#6D9EC1", "white", "#E46726"))
 
 #REPLICATE SAPORITO & CASEY DESCRIPTIVES----------------------------------------
 # COUNTS
@@ -328,6 +351,7 @@ summary(reg_bw_diff_evi ) # show results
 
 
 #DESCRIPTIVE STATS--------------------------------------------------------------
+<<<<<<< HEAD
 
 
 ###########
@@ -369,6 +393,63 @@ place10_evi_sumstats %>%
 #############
 # CBSA
 #############
+=======
+## PLACE LEVEL
+place_evi_race_all_years <- cbg_all_geoids %>%
+  left_join(., evi_all_decades_cbg, by="GISJOIN") %>%
+  left_join(., race_all_decades_cbg, by=c("GEOID10"="CBG_10")) %>%
+  group_by(PLACE_DERIVED_NM, PLACEFP_DERIVED) %>%
+  summarize(across(starts_with("TOT_POP"), ~sum(.x, na.rm = T)),
+            across(starts_with("WHITE"), ~sum(.x, na.rm = T)),
+            across(starts_with("BLACK"), ~sum(.x, na.rm = T)),
+            across(starts_with("ASIAN"), ~sum(.x, na.rm = T)),
+            across(starts_with("HISPANIC"), ~sum(.x, na.rm = T)),
+            across(starts_with("evi"), ~mean(.x, na.rm = T))
+                   ) %>% 
+  mutate_at(vars(c(WHITE_NH_10, BLACK_NH_10, ASIAN_NH_10, HISPANIC_10)), funs("percent" = (./TOT_POP_10) * 100)) %>%
+  mutate_at(vars(c(WHITE_NH_00, BLACK_NH_00, ASIAN_NH_00, HISPANIC_00)), funs("percent" = (./TOT_POP_00) * 100)) %>%
+  mutate_at(vars(c(WHITE_NH_90, BLACK_NH_90, ASIAN_NH_90, HISPANIC_90)), funs("percent" = (./TOT_POP_90) * 100)) %>%
+  mutate(evi_chg_10to20 = (((evi20 - evi10)/evi10)),
+         evi_chg_00to10 = (((evi10 - evi00)/evi00)),
+         evi_chg_90to00 = (((evi00 - evi90)/evi90)),
+         evi_chg_90to10 = (((evi10 - evi90)/evi90)), 
+         WHITE_NH_chg_00to10 = (
+           ((WHITE_NH_10_percent - WHITE_NH_00_percent)/WHITE_NH_00_percent)*100),
+         BLACK_NH_chg_00to10 = (
+           ((BLACK_NH_10_percent - BLACK_NH_00_percent)/BLACK_NH_00_percent)*100),
+         ASIAN_NH_chg_00to10 = (
+           ((ASIAN_NH_10_percent - ASIAN_NH_00_percent)/ASIAN_NH_00_percent)*100),
+         HISPANIC_chg_00to10 = (
+           ((HISPANIC_10_percent - HISPANIC_00_percent)/HISPANIC_00_percent)*100),
+         TOT_POP_chg_00to10 = (
+           ((TOT_POP_10 - TOT_POP_00)/TOT_POP_00)*100),
+         TOT_POP_chg_90to10 = (
+           ((TOT_POP_10 - TOT_POP_90)/TOT_POP_90)*100),
+         WHITE_NH_chg_90to10 = (
+           ((WHITE_NH_10_percent - WHITE_NH_90_percent)/WHITE_NH_90_percent)*100),
+         BLACK_NH_chg_90to10 = (
+           ((BLACK_NH_10_percent - BLACK_NH_90_percent)/BLACK_NH_90_percent)*100),
+         ASIAN_NH_chg_90to10 = (
+           ((ASIAN_NH_10_percent - ASIAN_NH_90_percent)/ASIAN_NH_90_percent)*100),
+         HISPANIC_chg_90to10 = (
+           ((HISPANIC_10_percent - HISPANIC_90_percent)/HISPANIC_90_percent)*100)
+  )  %>%
+  select(!contains("percent"))
+
+
+
+
+
+
+
+
+
+
+
+
+
+## CBSA
+>>>>>>> f10a04ecfa524b97e8646e01759a62da3e0d2fd9
 cbsa10bounds_evi_sumstats <- EVI_allyears_Cbg10_cbsa_sf %>%
   mutate(evi_chg_10to20 = (((evi20 - evi10)/evi10) * 100),
          evi_chg_00to10 = (((evi10 - evi00)/evi00) * 100),
