@@ -18,5 +18,6 @@ census/race_00_weighted_estimates_for_10geog.rds
 census/race_10_on_10_cbg.rds
 census/race_90_on_10_cbg.rds
 .RData
+green_space/nlcd/
 
         
