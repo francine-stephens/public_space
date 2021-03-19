@@ -25,6 +25,7 @@ packages <- c(
   "ggcorrplot",
   "modelsummary",
   "stargazer",
+  "panelr",
   "tmap",
   "tigris",
   "censusapi", 
@@ -125,6 +126,32 @@ cbg_all_geoids <- cbg10 %>%
                             "Metropolitan Area",
                             "Micropolitan Area")
          )
+
+## AREAL CALCULATIONS
+cbg_area <- cbg10 %>%
+  select(GEOID10) %>%
+  mutate(area = st_area(.),
+         area = as.numeric(set_units(area, mi^2))
+         ) %>%
+  st_set_geometry(NULL)
+
+
+## MERGE ALL DEMOGRAPHIC & GREEN SPACE DATA
+
+# PERCENT
+race_pct_all_decades_cbg <- race_all_decades_cbg %>% 
+  long_panel(., prefix = "_", periods = c(10, 00, 90), label_location = "end")
+
+  
+  
+  #mutate_at(vars(WHITE_NH_10:HISPANIC_10), funs("percent" = (./TOT_POP_10) * 100)) %>%
+  #mutate_at(vars(WHITE_NH_00:HISPANIC_00), funs("percent" = (./TOT_POP_00) * 100)) %>%
+  #select(CBG_10, TOT_POP_10, TOT_POP_00, WHITE_NH_10_percent:HISPANIC_00_percent)
+
+cbg_geog_evi_race_all_years <- cbg_all_geoids %>%
+  left_join(., evi_all_decades_cbg, by="GISJOIN") %>%
+  left_join(., race_pct_all_decades_cbg, by=c("GEOID10"="CBG_10")) %>% 
+  left_join(., ndvi_2010_cbg, by=c("GEOID10"))
 
 ```
 
