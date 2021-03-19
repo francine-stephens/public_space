@@ -64,9 +64,16 @@ cbg10 <- st_read(paste0(shp_repo,
 
 ## Data Preparation
 
-* EVI scores come from Landsat satellite image mosaics from 1990, 2000, and 2010. <span style="color: red;">**Come back and add more recent data 2020/2018 ACS because some of the biggest shifts within places appear to occur between 2010 and 2020**</span>
-* Decennial U.S. Census data for each decade. 
-* 
+* EVI scores come from Landsat satellite image mosaics from 1990, 2000, and 2010. <span style="color: red;">Return and add more recent data 2020 because some of the biggest shifts within places appear to occur between 2010 and 2020</span>
+* Decennial U.S. Census data for each decade. <span style="color: red;">Return and add 2019 ACS to capture more recent shifts</span>
+  * Race
+  * Population density
+  * Housing units
+  * Housing tenure - % renter-occupied housing units
+  * Housing occupancy - % vacant housing units
+* Other Environmental Data:
+  * Precipition - mm in previous 6 months
+  * Ecoregions - 12 classes. Classes are based on the regional ecosystem - soil, landform, major vegetation types, climate.
 
 ```{r data imports, warning=F, message=F}
 ## DATA IMPORTS-----------------------------------------------------------------
@@ -207,6 +214,17 @@ knitr::kable(metro_micro_place_evi_comparison,
 
 ## Neighborhood Racial Composition & Greenness
 
+The figure below illustrates the relationship between the average neighborhood racial composition and the EVI level for each decade. NOTE: 2020 is blank because 2019 ACS data have not been incorporated yet.  
+
+The average neighborhood with an EVI of 0.5 was 83% white in 1990, 74% white in 2000, and 65% in 2010. The average share of Hispanics in a neighborhood of that same greenness level was 3% in 1990 and then 12% in 2010.  
+
+If we look at a neighborhood with a low average EVI such as 0.1, the average share of whites in 1990 was 48% and then fell to 38% in 2010. 
+
+Lastly, at the high end of the greenness scale around 0.8, the average share of whites in a neighborhood was 96% in 1990 and 93% in 2010. The average percent of Hispanics in a highly green neighborhood was less than 1% in 1990 and 3% in 2010, while the share of Black residents hovered around 2% across this time period. 
+
+Overall, as the EVI increases, the average percent of whites also increased. However, as of 2010, minorities - particularly, Hispanics and Blacks, make up larger average shares of greener neighborhoods. This pattern appears across each focal year.
+
+NOTE: The racial breakdown for high EVI values in 1990 is a little strange. Need to investigate what is driving the steep drop in % white/increase in % Black.
 
 ```{r evi and racial comp at cbg level, message=F, warning=F}
 ## CBG EVI
@@ -232,7 +250,6 @@ average_cbg_composition_by_evi <- full_cbg_data %>%
 ggplot(average_cbg_composition_by_evi, aes(x=evi, y=percent, fill=race)) + 
    geom_area(alpha=0.6 , size=.5, colour="white") +
     facet_wrap(~ wave, nrow = 4) +
-    #scale_fill_viridis(discrete = T, option = "cividis") +
     scale_fill_brewer(palette = "Set2") +
     theme_minimal() + 
     labs(title = "Average Neighborhood Composition by Level of Greenness",
@@ -244,3 +261,8 @@ ggplot(average_cbg_composition_by_evi, aes(x=evi, y=percent, fill=race)) +
 ```
 
 ## Multivariate Analysis
+
+* The goal is to get at changes in evi and race composition within neighborhoods and places, so run time fixed effects models.
+  * Non-spatial model and spatial error model. The spatial error model would account for residual spatial autocorrelation.
+* Focal predictor is % race group.
+* Adjust for environmental variables and demographic confounders listed above. 
