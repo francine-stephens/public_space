@@ -72,8 +72,8 @@ cbg10 <- st_read(paste0(shp_repo,
   * Housing tenure - % renter-occupied housing units
   * Housing occupancy - % vacant housing units
 * Other Environmental Data:
-  * Precipition - mm in previous 6 months
-  * Ecoregions - 12 classes. Classes are based on the regional ecosystem - soil, landform, major vegetation types, climate.
+  * Precipitation - mm in previous 6 months
+  * Eco-regions - 12 classes. Classes are based on the regional ecosystem - soil, landform, major vegetation types, climate.
 
 ```{r data imports, warning=F, message=F}
 ## DATA IMPORTS-----------------------------------------------------------------
