@@ -1,0 +1,123 @@
+---
+title: 'Green Space & Residential Demographic Patterns: 1990 to 2010'
+author: "Francine Stephens"
+date: "Last Updated: `r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    theme: flatly
+    highlight: espresso
+---
+
+```{r setup, include=F, warning=F, message=F}
+knitr::opts_chunk$set(echo=T)
+
+## LIBRARIES
+packages <- c(
+  "readr",
+  "tidyverse",
+  "sf",
+  "ggplot2",
+  "scales",
+  "units",
+  "ggcorrplot",
+  "modelsummary",
+  "stargazer",
+  "tmap",
+  "tigris",
+  "censusapi", 
+  "tidycensus",
+  "corrplot",
+  "RColorBrewer"
+)
+lapply(packages, library, character.only = T)
+
+## PATHS
+setwd("~/Projects/public_space")
+wd <- getwd()
+green_space_path <- "/green_space/gee/"
+census_data_path <- "/census"
+shp_repo <- "C:/Users/Franc/Documents/Shapefile_Repository"
+shp2010_path <- "/2010USA_CensusGeog_Shp"
+cbsa_path <- "/tl_2010_us_cbsa10/"
+metdiv_path <- "/tl_2010_us_metdiv10/"
+cbg10_path <- "/us_blck_grp_2010/"
+places10_path <- "/tl2010_us_place_2010/"
+
+## APIs
+census_api_key("99ccb52a629609683f17f804ca875115e3f0804c",  overwrite = T)
+Sys.setenv(CENSUS_KEY="99ccb52a629609683f17f804ca875115e3f0804c")
+
+```
+
+## DATA PREPARATION
+
+* EVI scores come from Landsat satellite image mosaics from 1990, 2000, and 2010. <span style="color: red;">**Come back and add more recent data 2020/2018 ACS because some of the biggest shifts within places appear to occur between 2010 and 2020**</span>
+* Decennial U.S. Census data for each decade. 
+* 
+
+```{r data imports, warning=F, message=F}
+## DATA IMPORTS-----------------------------------------------------------------
+evi_all_decades_cbg <- readRDS(paste0(wd, 
+                                      green_space_path,
+                                      "evi_all_years_on_2010cbg.rds"))
+
+ndvi_2010_cbg <- read_csv(paste0(wd,
+                                 green_space_path,
+                                 "NDVI_2010_by_cbg10.csv"))
+
+race_all_decades_cbg <- readRDS(paste0(wd, 
+                         census_data_path, 
+                         "/all_decades_race_on_cbg10.rds"))
+
+counties <- get_decennial(geography = "county", 
+                          variables = "P001001", 
+                          year = 2010) 
+
+places <- get_decennial(geography = "place", 
+                        variables = "P001001", 
+                        year = 2010) 
+
+cbg_higher_geog_ids <- readRDS(paste0(shp_repo,
+                                      "/cbg_full_geog_identifers.rds"))
+top100_cbsa <- read_csv(paste0(shp_repo, 
+                               "/top100_cbsa_2010bounds.csv"))
+top100_places <- read_csv(paste0(shp_repo, 
+                                 "/top100_places_2010bounds.csv"))
+
+```
+
+
+````{r data prep, message=F, warning=F}
+#DATA PREPARATION---------------------------------------------------------------
+## MERGE ALL GEOIDs
+top100_cbsa <- top100_cbsa %>%
+  mutate(CBSAFP = as.character(CBSAFP)) %>%
+  select(-CBSA_NM) %>%
+  rename(top100_cbsa="top_100", cbsa_rank_pop_size="rank_pop_size")
+
+top100_places <- top100_places %>%
+  select(-PLACE_NM) %>%
+  rename(top100_place="top_100", place_rank_pop_size="rank_pop_size")
+
+counties <- counties %>%
+  select(PLACEFP_DERIVED="GEOID", PLACE_DERIVED_NM="NAME")
+
+cbg_all_geoids <- cbg10 %>%
+  st_set_geometry(NULL) %>%
+  select(GEOID10, GISJOIN) %>%
+  left_join(., cbg_higher_geog_ids, by=c("GEOID10", "GISJOIN")) %>%
+  mutate(PLACEFP_DERIVED = if_else(is.na(PLACEID),
+                                   str_sub(GEOID10, end=5),
+                                   PLACEID)) %>% 
+  left_join(., counties, by = "PLACEFP_DERIVED") %>%
+  mutate(PLACE_DERIVED_NM=coalesce(PLACE_DERIVED_NM, PLACE_NM)) %>%
+  relocate(PLACEFP_DERIVED, .after=PLACEID) %>%
+  relocate(PLACE_DERIVED_NM, .after=PLACE_NM) %>%
+  left_join(., top100_places, by=c("PLACEID"="PLACEFP")) %>%
+  left_join(., top100_cbsa, by=c("CBSAFP10"="CBSAFP")) 
+
+```
+
