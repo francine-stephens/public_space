@@ -31,7 +31,9 @@ packages <- c(
   "censusapi", 
   "tidycensus",
   "corrplot",
-  "RColorBrewer"
+  "RColorBrewer",
+  "hrbrthemes",
+  "viridis"
 )
 lapply(packages, library, character.only = T)
 
@@ -60,7 +62,7 @@ cbg10 <- st_read(paste0(shp_repo,
 
 ```
 
-## DATA PREPARATION
+## Data Preparation
 
 * EVI scores come from Landsat satellite image mosaics from 1990, 2000, and 2010. <span style="color: red;">**Come back and add more recent data 2020/2018 ACS because some of the biggest shifts within places appear to occur between 2010 and 2020**</span>
 * Decennial U.S. Census data for each decade. 
@@ -70,11 +72,11 @@ cbg10 <- st_read(paste0(shp_repo,
 ## DATA IMPORTS-----------------------------------------------------------------
 evi_all_decades_cbg <- readRDS(paste0(wd, 
                                       green_space_path,
-                                      "evi_all_years_on_2010cbg.rds"))
+                                      "evi_all_years_on_2010cbg_LONG.rds"))
 
 race_all_decades_cbg <- readRDS(paste0(wd, 
                          census_data_path, 
-                         "/all_decades_race_on_cbg10.rds"))
+                         "/all_decades_race_on_cbg10_LONG.rds"))
 
 counties <- get_decennial(geography = "county", 
                           variables = "P001001", 
@@ -137,21 +139,108 @@ cbg_area <- cbg10 %>%
 
 
 ## MERGE ALL DEMOGRAPHIC & GREEN SPACE DATA
-
-# PERCENT
 race_pct_all_decades_cbg <- race_all_decades_cbg %>% 
-  long_panel(., prefix = "_", periods = c(10, 00, 90), label_location = "end")
+  mutate_at(vars(WHITE_NH:HISPANIC), funs("PCT" = (./TOT_POP) * 100)) %>%
+  select(GEOID, wave, TOT_POP, WHITE_NH_PCT:HISPANIC_PCT)
 
-  
-  
-  #mutate_at(vars(WHITE_NH_10:HISPANIC_10), funs("percent" = (./TOT_POP_10) * 100)) %>%
-  #mutate_at(vars(WHITE_NH_00:HISPANIC_00), funs("percent" = (./TOT_POP_00) * 100)) %>%
-  #select(CBG_10, TOT_POP_10, TOT_POP_00, WHITE_NH_10_percent:HISPANIC_00_percent)
-
-cbg_geog_evi_race_all_years <- cbg_all_geoids %>%
-  left_join(., evi_all_decades_cbg, by="GISJOIN") %>%
-  left_join(., race_pct_all_decades_cbg, by=c("GEOID10"="CBG_10")) %>% 
-  left_join(., ndvi_2010_cbg, by=c("GEOID10"))
+full_cbg_data <- evi_all_decades_cbg %>% 
+  left_join(., cbg_all_geoids, by = "GISJOIN") %>%
+  left_join(., race_pct_all_decades_cbg, by = c("GEOID10" = "GEOID",
+                                                "wave" = "wave")) %>% 
+  relocate(evi, .before = TOT_POP) %>%
+  left_join(., cbg_area, by = "GEOID10") %>%
+  mutate(POP_DENS = TOT_POP/area)
 
 ```
 
+## Metro-Micro Area Comparison
+
+Greenness (EVI/NDVI) may take on different meanings/levels in metropolitan and micropolitan areas. Previous work has suggested that they shouldn't be studied together. If we look at the distributions of EVI at the place level across metro and micropolitan areas, there do not appear to be striking differences. 
+
+* The middle of the distribution tends to hover around 0.45 and increases over time. 
+* Noticeably, the distribution for metro areas tends to spread more over time, especially as of 2020. Although the variation in greenness in micropolitan areas is appreciable in 2020 compared to previous decades, there is more clumping of values across the distribution in micropolitan areas, whereas the the tails of the metro area distribution are not as dense.
+
+```{r violin evi metro and micro, message=F, warning=F}
+place_evi_by_year <- full_cbg_data %>%
+  ungroup() %>%
+  group_by(PLACEFP_DERIVED, PLACE_DERIVED_NM, wave, in_metro) %>% 
+  filter(!is.na(in_metro)) %>%
+  summarize(evi_mean = mean(evi, na.rm=T),
+            n = n())
+
+metro_micro_place_evi_comparison <- place_evi_by_year %>%
+  ungroup() %>%
+  filter(!is.na(evi_mean)) %>%
+  group_by(in_metro, wave) %>%
+  summarize_at(vars(evi_mean), list(mean = mean, sd = sd, median = median, min = min, max = max))
+
+violin_evi_by_metro_status <- place_evi_by_year %>%
+  ggplot(aes(fill = as.factor(wave), y = evi_mean, x = in_metro)) + 
+    geom_violin(position = "dodge", alpha=0.5, outlier.colour="transparent") +
+    scale_fill_viridis(discrete  =T, name = "") +
+    theme_ipsum()  +
+    xlab("Metropolitan-Micropolitan Status") +
+    theme(legend.position="right") +
+    ylab("Average EVI") +
+    ggtitle("Place-level EVI by Metro & Micro Area")
+ 
+violin_evi_by_metro_status
+  
+```
+
+The summary statistics indicate noticeable increases from 2010 to 2020 for metro and micro areas at both the center and tails of the distributions. 
+
+```{r evi metro and micro sum stats, message=F, warning=F}
+metro_micro_place_evi_comparison <- place_evi_by_year %>%
+  ungroup() %>%
+  filter(!is.na(evi_mean)) %>%
+  group_by(in_metro, wave) %>%
+  summarize_at(vars(evi_mean), list(mean = mean, sd = sd, median = median, min = min, max = max))
+
+knitr::kable(metro_micro_place_evi_comparison,
+             digits = 3,
+             caption = "Summary of Place-Level EVI by Metro-Micro Area",
+             col.names = c("Region Type", "Year", "Mean", "SD", "Median", "Min", "Max")
+             )
+```
+
+
+## Neighborhood Racial Composition & Greenness
+
+
+```{r evi and racial comp at cbg level, message=F, warning=F}
+## CBG EVI
+average_cbg_composition_by_evi <- full_cbg_data %>% 
+  ungroup() %>%
+  filter(evi >= 0 & evi <= 1,
+         !is.na(evi),
+         in_metro == "Metropolitan Area") %>%
+  mutate(wave = as.character(wave),
+         evi = round(evi, 2)) %>%
+  group_by(wave) %>%
+  select(wave, evi, WHITE_NH_PCT:HISPANIC_PCT) %>%
+  group_by(wave, evi) %>%
+  summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
+  pivot_longer(
+   cols = ends_with("_PCT"),
+   names_to = "race",
+   values_to = "percent",
+ ) %>%
+  mutate(race = str_remove(race, "_PCT"))
+
+
+ggplot(average_cbg_composition_by_evi, aes(x=evi, y=percent, fill=race)) + 
+   geom_area(alpha=0.6 , size=.5, colour="white") +
+    facet_wrap(~ wave, nrow = 4) +
+    #scale_fill_viridis(discrete = T, option = "cividis") +
+    scale_fill_brewer(palette = "Set2") +
+    theme_minimal() + 
+    labs(title = "Average Neighborhood Composition by Level of Greenness",
+         y = "Average Neighborhood Composition (%)",
+         x = "EVI",
+         fill = "Race")
+
+
+```
+
+## Multivariate Analysis
