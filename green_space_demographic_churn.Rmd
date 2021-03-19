@@ -50,6 +50,13 @@ places10_path <- "/tl2010_us_place_2010/"
 census_api_key("99ccb52a629609683f17f804ca875115e3f0804c",  overwrite = T)
 Sys.setenv(CENSUS_KEY="99ccb52a629609683f17f804ca875115e3f0804c")
 
+## SHAPEFILE IMPORTS
+cbg10 <- st_read(paste0(shp_repo,
+                        shp2010_path,
+                        cbg10_path,
+                        "US_blck_grp_2010.shp"), 
+                 quiet = F)
+
 ```
 
 ## DATA PREPARATION
@@ -63,10 +70,6 @@ Sys.setenv(CENSUS_KEY="99ccb52a629609683f17f804ca875115e3f0804c")
 evi_all_decades_cbg <- readRDS(paste0(wd, 
                                       green_space_path,
                                       "evi_all_years_on_2010cbg.rds"))
-
-ndvi_2010_cbg <- read_csv(paste0(wd,
-                                 green_space_path,
-                                 "NDVI_2010_by_cbg10.csv"))
 
 race_all_decades_cbg <- readRDS(paste0(wd, 
                          census_data_path, 
@@ -117,7 +120,11 @@ cbg_all_geoids <- cbg10 %>%
   relocate(PLACEFP_DERIVED, .after=PLACEID) %>%
   relocate(PLACE_DERIVED_NM, .after=PLACE_NM) %>%
   left_join(., top100_places, by=c("PLACEID"="PLACEFP")) %>%
-  left_join(., top100_cbsa, by=c("CBSAFP10"="CBSAFP")) 
+  left_join(., top100_cbsa, by=c("CBSAFP10"="CBSAFP")) %>%
+  mutate(in_metro = if_else(str_detect(CBSA_NM, "Metro"),
+                            "Metropolitan Area",
+                            "Micropolitan Area")
+         )
 
 ```
 
