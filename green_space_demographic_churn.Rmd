@@ -265,4 +265,4 @@ ggplot(average_cbg_composition_by_evi, aes(x=evi, y=percent, fill=race)) +
 * The goal is to get at changes in evi and race composition within neighborhoods and places, so run time fixed effects models.
   * Non-spatial model and spatial error model. The spatial error model would account for residual spatial autocorrelation.
 * Focal predictor is % race group.
-* Adjust for environmental variables and demographic confounders listed above. 
+* Adjust for environmental variables and demographic factors listed above. 

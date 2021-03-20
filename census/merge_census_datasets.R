@@ -27,6 +27,8 @@ race00 <- readRDS(paste0(wd,
                          "/race_00_on_10_cbg.rds"))
 race90 <- readRDS(paste0(wd,
                          "/race_90_on_10_cbg.rds"))
+race19 <- readRDS(paste0(wd,
+                         "/cbg_acs_2019_race.rds"))
 
 # PROCESS VARIABLES & MERGE-----------------------------------------------------
 ## 1990 PREPARATION INCLUDES FIXING KEY VARIABLE.
@@ -42,7 +44,7 @@ race90_edited <- race90 %>%
          GEOID = str_c(state, county, tract, cbg, sep="")) %>%
   select(-CBG_10, -state:-cbg) %>%
   rename_with(., ~ gsub("_90", "", .x)) %>%
-  mutate(wave = 1990) %>%
+  mutate(wave = "1990") %>%
   relocate(GEOID, wave) %>%
   rename(OTHER_MULTIRACIAL_NH = "OTHER_RACE_NH",
          ASIAN_PACIFIC_NH = "ASIAN_NH")
@@ -51,7 +53,7 @@ race00_edited <- race00 %>%
   rename_with(., ~ gsub("_00", "", .x)) %>%
   rename(GEOID = "CBG_10",
          ASIAN_PACIFIC_NH = "ASIAN_NH") %>%
-  mutate(wave = 2000,
+  mutate(wave = "2000",
          OTHER_MULTIRACIAL_NH = OTHER_RACE_NH + MULTIRACIAL_NH) %>%
   select(-OTHER_RACE_NH, -MULTIRACIAL_NH) %>%
   relocate(OTHER_MULTIRACIAL_NH, .before = HISPANIC) %>%
@@ -60,7 +62,7 @@ race00_edited <- race00 %>%
 race10_edited <- race10 %>%
   rename(GEOID = "CBG_10") %>%
   rename_with(., ~ gsub("_10", "", .x)) %>%
-  mutate(wave = 2010,
+  mutate(wave = "2010",
          OTHER_MULTIRACIAL_NH = OTHER_RACE_NH + MULTIRACIAL_NH, 
          ASIAN_PACIFIC_NH = ASIAN_NH + PACIFIC_NH) %>%
   select(-OTHER_RACE_NH, -MULTIRACIAL_NH, -ASIAN_NH, -PACIFIC_NH) %>%
@@ -70,9 +72,12 @@ race10_edited <- race10 %>%
 
 
 ## APPEND ALL DATASETS
-race_all_decades_cbg10 <- rbind(race90_edited, race00_edited, race10_edited) %>%
+race_all_decades_cbg10 <- rbind(race90_edited,
+                                race00_edited,
+                                race10_edited,
+                                race19) %>%
   arrange(GEOID, wave)
 
 
 # EXPORT
-saveRDS(race_all_decades_cbg10, "all_decades_race_on_cbg10_LONG.rds")
+saveRDS(race_all_decades_cbg10, "all_years_race_on_cbg10_LONG.rds")
