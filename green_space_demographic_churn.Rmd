@@ -83,7 +83,7 @@ evi_all_decades_cbg <- readRDS(paste0(wd,
 
 race_all_decades_cbg <- readRDS(paste0(wd, 
                          census_data_path, 
-                         "/all_decades_race_on_cbg10_LONG.rds"))
+                         "/all_years_race_on_cbg10_LONG.rds"))
 
 counties <- get_decennial(geography = "county", 
                           variables = "P001001", 
@@ -116,7 +116,7 @@ top100_places <- top100_places %>%
   rename(top100_place="top_100", place_rank_pop_size="rank_pop_size")
 
 counties <- counties %>%
-  select(PLACEFP_DERIVED="GEOID", PLACE_DERIVED_NM="NAME")
+  select(PLACEFP_DERIVED = "GEOID", PLACE_DERIVED_NM = "NAME")
 
 cbg_all_geoids <- cbg10 %>%
   st_set_geometry(NULL) %>%
@@ -148,9 +148,11 @@ cbg_area <- cbg10 %>%
 ## MERGE ALL DEMOGRAPHIC & GREEN SPACE DATA
 race_pct_all_decades_cbg <- race_all_decades_cbg %>% 
   mutate_at(vars(WHITE_NH:HISPANIC), funs("PCT" = (./TOT_POP) * 100)) %>%
-  select(GEOID, wave, TOT_POP, WHITE_NH_PCT:HISPANIC_PCT)
+  select(GEOID, wave, TOT_POP, WHITE_NH_PCT:HISPANIC_PCT) %>%
+  mutate(wave = as.numeric(wave))
 
 full_cbg_data <- evi_all_decades_cbg %>% 
+  mutate(wave = replace(wave, wave == 2020, 2019)) %>%
   left_join(., cbg_all_geoids, by = "GISJOIN") %>%
   left_join(., race_pct_all_decades_cbg, by = c("GEOID10" = "GEOID",
                                                 "wave" = "wave")) %>% 
@@ -183,13 +185,13 @@ metro_micro_place_evi_comparison <- place_evi_by_year %>%
 
 violin_evi_by_metro_status <- place_evi_by_year %>%
   ggplot(aes(fill = as.factor(wave), y = evi_mean, x = in_metro)) + 
-    geom_violin(position = "dodge", alpha=0.5, outlier.colour="transparent") +
-    scale_fill_viridis(discrete  =T, name = "") +
-    theme_ipsum()  +
-    xlab("Metropolitan-Micropolitan Status") +
+    geom_violin(position = "dodge", alpha = 0.5, outlier.colour = "transparent") +
+    scale_fill_viridis(discrete = T, name = "") +
+    theme_minimal()  +
     theme(legend.position="right") +
-    ylab("Average EVI") +
-    ggtitle("Place-level EVI by Metro & Micro Area")
+    labs(title = "Place-level EVI by Metro & Micro Area",
+         y = "Average EVI",
+         x = "")
  
 violin_evi_by_metro_status
   
