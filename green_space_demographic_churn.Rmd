@@ -33,7 +33,8 @@ packages <- c(
   "corrplot",
   "RColorBrewer",
   "hrbrthemes",
-  "viridis"
+  "viridis", 
+  "leaflet"
 )
 lapply(packages, library, character.only = T)
 
@@ -64,8 +65,8 @@ cbg10 <- st_read(paste0(shp_repo,
 
 ## Data Preparation
 
-* EVI scores come from Landsat satellite image mosaics from 1990, 2000, and 2010. <span style="color: red;">Return and add more recent data 2020 because some of the biggest shifts within places appear to occur between 2010 and 2020</span>
-* Decennial U.S. Census data for each decade. <span style="color: red;">Return and add 2019 ACS to capture more recent shifts</span>
+* EVI scores come from Landsat satellite image mosaics from 1990, 2000, and 2010, 2019.
+* Decennial U.S. Census data for each decade and 2019 ACS. 
   * Race
   * Population density
   * Housing units
@@ -74,6 +75,7 @@ cbg10 <- st_read(paste0(shp_repo,
 * Other Environmental Data:
   * Precipitation - mm in previous 6 months
   * Eco-regions - 12 classes. Classes are based on the regional ecosystem - soil, landform, major vegetation types, climate.
+  * Impervious space - % land cover impervious
 
 ```{r data imports, warning=F, message=F}
 ## DATA IMPORTS-----------------------------------------------------------------
@@ -216,7 +218,7 @@ knitr::kable(metro_micro_place_evi_comparison,
 
 ## Neighborhood Racial Composition & Greenness
 
-The figure below illustrates the relationship between the average neighborhood racial composition and the EVI level for each decade. NOTE: 2020 is blank because 2019 ACS data have not been incorporated yet.  
+The figure below illustrates the relationship between the average neighborhood racial composition and the EVI level for each decade within metropolitan areas.
 
 The average neighborhood with an EVI of 0.5 was 83% white in 1990, 74% white in 2000, and 65% in 2010. The average share of Hispanics in a neighborhood of that same greenness level was 3% in 1990 and then 12% in 2010.  
 
@@ -224,12 +226,11 @@ If we look at a neighborhood with a low average EVI such as 0.1, the average sha
 
 Lastly, at the high end of the greenness scale around 0.8, the average share of whites in a neighborhood was 96% in 1990 and 93% in 2010. The average percent of Hispanics in a highly green neighborhood was less than 1% in 1990 and 3% in 2010, while the share of Black residents hovered around 2% across this time period. 
 
-Overall, as the EVI increases, the average percent of whites also increased. However, as of 2010, minorities - particularly, Hispanics and Blacks, make up larger average shares of greener neighborhoods. This pattern appears across each focal year.
+Overall, as the EVI increases, the average percent of whites also increased. However, as of 2010, minorities - particularly, Hispanics and Blacks, make up larger average shares of greener neighborhoods. This pattern appears across each of the years.
 
-NOTE: The racial breakdown for high EVI values in 1990 is a little strange. Need to investigate what is driving the steep drop in % white/increase in % Black.
 
 ```{r evi and racial comp at cbg level, message=F, warning=F}
-## CBG EVI
+## CBG EVI & AVG RACIAL COMPOSITION METRO AREAS
 average_cbg_composition_by_evi <- full_cbg_data %>% 
   ungroup() %>%
   filter(evi >= 0 & evi <= 1,
@@ -237,7 +238,6 @@ average_cbg_composition_by_evi <- full_cbg_data %>%
          in_metro == "Metropolitan Area") %>%
   mutate(wave = as.character(wave),
          evi = round(evi, 2)) %>%
-  group_by(wave) %>%
   select(wave, evi, WHITE_NH_PCT:HISPANIC_PCT) %>%
   group_by(wave, evi) %>%
   summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
@@ -259,8 +259,79 @@ ggplot(average_cbg_composition_by_evi, aes(x=evi, y=percent, fill=race)) +
          x = "EVI",
          fill = "Race")
 
+```
+
+How do metro areas compare to micropolitan areas with respect to racial/ethnic composition and greenness? The multiple area graphs below show the breakdown by year and type of statistical region. Compared to the metropolitan areas, the neighborhoods in micropolitan areas did not experience the same increase in the average share of minority residents in neighborhoods with the highest levels of greenness. 
+
+```{r test metro v micro areas evi and race comp, message=F, warning=F}
+## CBG EVI & AVG RACIAL COMPOSITION METRO V. MICRO AREAS
+average_cbg_composition_by_evi_all_cbsa <- full_cbg_data %>% 
+  ungroup() %>%
+  filter(evi >= 0 & evi <= 1,
+         !is.na(evi),
+         !is.na(in_metro)) %>%
+  mutate(wave = as.character(wave),
+         evi = round(evi, 2)) %>%
+  select(wave, in_metro, evi, WHITE_NH_PCT:HISPANIC_PCT) %>%
+  group_by(wave, evi, in_metro) %>%
+  summarise(across(where(is.numeric), ~ mean(.x, na.rm = TRUE))) %>%
+  pivot_longer(
+   cols = ends_with("_PCT"),
+   names_to = "race",
+   values_to = "percent",
+ ) %>%
+  mutate(race = str_remove(race, "_PCT"))
+
+
+ggplot(average_cbg_composition_by_evi_all_cbsa, aes(x=evi, y=percent, fill=race)) + 
+   geom_area(alpha=0.6 , size=.5, colour="white") +
+    facet_wrap(vars(wave, in_metro), nrow = 4) +
+    scale_fill_brewer(palette = "Set2") +
+    theme_minimal() + 
+    labs(title = "Average Neighborhood Composition by Level of Greenness",
+         y = "Average Neighborhood Composition (%)",
+         x = "EVI",
+         fill = "Race")
+
 
 ```
+
+
+**1990 Anomaly - High EVI and high average % Black residents**
+
+In the 1990 area chart above, the racial breakdown for high EVI values (i.e., above 0.8) changes drastically. According to the chart, the average neighborhood with an EVI of 0.84 is 95% Black. A deeper investigation into this data point reveals that only one census block group fell between 0.84 and 0.85 EVI score in 1990, and this particular census block had a racial composition that was 95% Black. 
+
+This census block group is in Summerfield, Maryland, which is a suburb of Prince George's County. It is located in the Washington DC metro area. The census block group experienced demographic changes and decreasing greenness after 1990. Notably, the share of Black residents declined, while white and Hispanic residents increased. Despite these changes, Black residents were still the majority racial group in the neighborhood. EVI dropped to around 0.4/0.5 levels, which mirrors its neighboring census block group in Summerfield. 
+
+```{r identify place cbgs with high evi and black 1990, message=F, warning=F}
+## 1990 ANOMALY 
+knitr::kable(full_cbg_data %>%
+  filter(wave == 1990,
+         evi > 0.84, 
+         evi < 0.85) %>%
+    ungroup() %>%
+  select(PLACE_NM, CBSA_NM, evi, WHITE_NH_PCT, BLACK_NH_PCT),
+  digits = 2,
+  caption = "1990 Anomaly",
+  col.names = c("Place", "Metro", "EVI", " % White", "% Black")
+)
+
+
+knitr::kable(full_cbg_data %>%
+  filter(PLACEFP_DERIVED == "2475810") %>%
+  arrange(wave, evi) %>%
+  mutate(wave = as.factor(wave)) %>%
+  ungroup() %>%
+  relocate(wave, .after = GEOID10) %>%
+  select(GEOID10, wave, evi, BLACK_NH_PCT, POP_DENS),
+  digits = 2,
+  format.args = list(big.mark = ','),
+  caption = "Summerfield, MD Census Block Group EVI and Demographics",
+  col.names = c("CBG", "Year", "EVI", "% Black", "People/Sq. Mi.")
+)
+
+```
+
 
 ## Multivariate Analysis
 
