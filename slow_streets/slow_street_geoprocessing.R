@@ -3,7 +3,7 @@
 # 
 # AUTHOR: FRANCINE STEPHENS
 # DATE CREATED: 3/21/21
-# LAST UPDATED: 3/21/21
+# LAST UPDATED: 3/22/21
 #-------------------------------------
 
 # SET-UP------------------------------------------------------------------------
@@ -25,9 +25,10 @@ packages <- c(
 )
 lapply(packages, library, character.only = T)
 
-##APIs
-key <- "AIzaSyCztwSCIHyEKP_uyjPrdZKf3jgZFA-XV1Y"
-set_key(key=key)
+## PARAMETERS
+socrata_token <- "EZnaKCxOX6zj0uyTkD340TWLh"
+email <- "fis@stanford.edu"
+pword <- "SFdata2017"
 
 ## PATHS
 setwd("~/Projects/public_space/slow_streets")
@@ -40,17 +41,16 @@ ss_intersections <- read_csv(paste0(wd,
                                 "/sf_slow_streets.csv")
                          )
 
-sf_street_intersections <- read.socrata(
-  "https://data.sfgov.org/resource/jfxm-zeee.json",
-  app_token = "EZnaKCxOX6zj0uyTkD340TWLh",
-  email     = "fis@stanford.edu",
-  password  = "SFdata2017"
+sf_street_intersections <- read.socrata("https://data.sfgov.org/resource/jfxm-zeee.json", 
+                                        app_token = socrata_token, 
+                                        email = email,
+                                        password  = pword
 )
 
 sf_streets_csv <- read.socrata("https://data.sfgov.org/resource/3psu-pn9h.csv",
-                               app_token = "EZnaKCxOX6zj0uyTkD340TWLh",
-                               email     = "fis@stanford.edu",
-                               password  = "SFdata2017")
+                               app_token = socrata_token,
+                               email     = email,
+                               password  = pword)
 
 # GEOPROCESSING-----------------------------------------------------------------
 ## SPATIAL OBJECT
