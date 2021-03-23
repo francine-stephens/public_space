@@ -14,6 +14,8 @@ packages <- c(
   "sf",
   "RSocrata",
   "ggplot2",
+  "leaflet",
+  "mapboxapi",
   "scales",
   "ggcorrplot",
   "tmap",
@@ -53,7 +55,31 @@ sf_streets_csv <- read.socrata("https://data.sfgov.org/resource/3psu-pn9h.csv",
                                password  = pword)
 
 # GEOPROCESSING-----------------------------------------------------------------
-## SPATIAL OBJECT
+## Process & Intersections (points)
+ss_intersections_sf <- ss_intersections %>% 
+  separate(intersection, c("st1", "st2"), sep = " & ") %>%
+  mutate(across(starts_with("st"), toupper)) %>% 
+  left_join(., sf_street_intersections, by = c("st1" = "street_name_1", 
+                                               "st2" = "street_name_2")
+  ) %>% 
+  select_at(vars(-contains("_coord"))) %>%
+  filter(id.y != "244828",
+         id.y != "250079") %>%
+  st_as_sf(., coords=c("longitude", "latitude"), crs=4326)
+
+leaflet() %>% 
+  addMapboxTiles(
+    style_id = "streets-v11",
+    username = "mapbox"
+  ) %>%
+  addCircleMarkers(
+    data = ss_intersections_sf,
+    radius = 1,
+    label = ~name, 
+  ) 
+
+
+## Process street segments
 streets_lines <- sf_streets_csv %>%
          st_as_sf(., wkt = "line")
 
