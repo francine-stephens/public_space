@@ -1,89 +1,89 @@
 id,status,name,intersection,direction,street_segments
 1,Operating,20th Ave,20th Ave & Judah St,north-south,"Judah St, Kirkham St, Lawton St, Moraga St, Noriega St"
 2,Operating,20th Ave,20th Ave & Ortega St,north-south,"Judah St, Kirkham St, Lawton St, Moraga St, Noriega St"
-3,Operating,20th St,20th St & Potrero Ave,east-west,"Potrero Ave, Hampshire St, York St, Bryant St, Florida St, Alabama St, Harrison St, Treat Ave, Folsom St, Shotwell St, South Van Ness Ave, Capp St, Mission St, San Carlos St"
-4,Operating,20th St,20th St & Lexington St,east-west,"Potrero Ave, Hampshire St, York St, Bryant St, Florida St, Alabama St, Harrison St, Treat Ave, Folsom St, Shotwell St, South Van Ness Ave, Capp St, Mission St, San Carlos St"
+3,Operating,20th St,20th St & Potrero Ave,east-west,"Potrero St, Hampshire St, York St, Bryant St, Florida St, Alabama St, Harrison St, Treat Ave, Folsom St, Shotwell St, South Van Ness Ave, Capp St, Mission St, San Carlos St"
+4,Operating,20th St,20th St & Lexington St,east-west,"Potrero St, Hampshire St, York St, Bryant St, Florida St, Alabama St, Harrison St, Treat Ave, Folsom St, Shotwell St, South Van Ness Ave, Capp St, Mission St, San Carlos St"
 5,Operating,23rd Ave,23rd Ave & Lake St,north-south,"Lake St, California St, Clement St, Geary Blvd, Anza St, Balboa St"
 6,Operating,23rd Ave,23rd Ave & Cabrillo St,north-south,"Lake St, California St, Clement St, Geary Blvd, Anza St, Balboa St"
-7,Operating,41st Ave,41st Ave & Lincoln Way,north-south,"Lincoln Way, Irving St, Judah St, Kirkham St, Lawton St, Moraga St, Noriega St, Ortega St, Pacheco St, Quintara St, Rivera St, Santiago St, Taraval St, Ulloa St"
-8,Operating,41st Ave,41st Ave & Vicente St,north-south,"Lincoln Way, Irving St, Judah St, Kirkham St, Lawton St, Moraga St, Noriega St, Ortega St, Pacheco St, Quintara St, Rivera St, Santiago St, Taraval St, Ulloa St"
-9,Operating,Arkansas St,Arkansas St & 17th St,north-south,"17th St, Mariposa St, 18th St, 19th St, 20th St, 22nd St, Madera St"
-10,Operating,Arkansas St,Arkansas St & 23rd St,north-south,"17th St, Mariposa St, 18th St, 19th St, 20th St, 22nd St, Madera St"
-11,Operating,Arlington St,Arlington St & Randall St,north-south,"Randall St, Fairmount St, Charles St, Highland Ave, Miguel St, Mateo St, Saint Mary's Ave"
-12,Operating,Arlington St,Arlington St & Roanoke St,north-south,"Randall St, Fairmount St, Charles St, Highland Ave, Miguel St, Mateo St, Saint Mary's Ave"
-13,Operating,Cabrillo St,Cabrillo St & 25th Ave,east-west,"25th Ave, 26th Ave, 27th Ave, 28th Ave, 29th Ave, 30th Ave, 31st Ave, 32nd Ave, 33rd Ave, 34th Ave, 35th Ave, 36th Ave, 37th Ave, 38th Ave, 39th Ave, 40th Ave, 41st Ave, 42nd Ave, 43rd Ave, 44th Ave"
-14,Operating,Cabrillo St,Cabrillo St & 45th Ave,east-west,"25th Ave, 26th Ave, 27th Ave, 28th Ave, 29th Ave, 30th Ave, 31st Ave, 32nd Ave, 33rd Ave, 34th Ave, 35th Ave, 36th Ave, 37th Ave, 38th Ave, 39th Ave, 40th Ave, 41st Ave, 42nd Ave, 43rd Ave, 44th Ave"
+7,Operating,41st Ave,41st Ave & Lincoln Way,north-south,
+8,Operating,41st Ave,41st Ave & Vicente St,north-south,
+9,Operating,Arkansas St,Arkansas St & 17th St,north-south,
+10,Operating,Arkansas St,Arkansas St & 23rd St,north-south,
+11,Operating,Arlington St,Arlington St & Randall St,north-south,
+12,Operating,Arlington St,Arlington St & Roanoke St,north-south,
+13,Operating,Cabrillo St,Cabrillo St & 25th Ave,east-west,
+14,Operating,Cabrillo St,Cabrillo St & 45th Ave,east-west,
 15,Operating,Chenery St,Chenery St & Lippard Ave,east-west,"Lippard Ave, Chilton Ave"
 16,Operating,Chenery St,Chenery St & Burnside Ave,east-west,"Lippard Ave, Chilton Ave"
-17,Operating,Clay St,Clay St & Steiner St,east-west,"Steiner St, Pierce St, Scott St, Divisadero St, Broderick St, Baker St, Lyon St, Presidio Ave, Walnut St, Laurel St, Locust St, Spruce St, Maple St, Cherry St"
-18,Operating,Clay St,Clay St & Arguello Blvd,east-west,"Steiner St, Pierce St, Scott St, Divisadero St, Broderick St, Baker St, Lyon St, Presidio Ave, Walnut St, Laurel St, Locust St, Spruce St, Maple St, Cherry St"
+17,Operating,Clay St,Clay St & Steiner St,east-west,
+18,Operating,Clay St,Clay St & Arguello Blvd,east-west,
 19,Operating,Duncan St,Duncan St & Guerrero St,east-west,"Guerrero St, Dolores St, Church St "
 20,Operating,Duncan St,Duncan St & Sanchez St,east-west,"Guerrero St, Dolores St, Church St "
-21,Operating,Excelsior Ave,Excelsior Ave & London St,north-south,"London St, Paris St, Lisbon St, Madrid St, Edinburg St, Naples St, Vienna St, Athens St, Moscow St"
-22,Operating,Excelsior Ave,Excelsior Ave & Munich St,north-south,"London St, Paris St, Lisbon St, Madrid St, Edinburg St, Naples St, Vienna St, Athens St, Moscow St"
-23,Operating,Golden Gate Ave,Golden Gate Ave & Broderick St,east-west,"Broderick St, Baker St, Lyon St, Central Ave"
-24,Operating,Golden Gate Ave,Golden Gate Ave & Masonic Ave,east-west,"Broderick St, Baker St, Lyon St, Central Ave"
-25,Operating,Holly Park Circle,Holly Park Cir & Appleton Ave,circle,Appleton Ave
-26,Operating,Holly Park Circle,Holly Park Cir & Highland Ave,circle,Highland Ave
-27,Operating,Holly Park Circle,Holly Park Cir & Park St,circle,Park St
-28,Operating,Holly Park Circle,Holly Park Cir & Murray St,circle,Murray St
-29,Operating,Holly Park Circle,Holly Park Cir & Newman St,circle,Newman St
-30,Operating,Holly Park Circle,Holly Park Cir & Elsie St,circle,Elsie St
-31,Operating,Holly Park Circle,Holly Park Cir & Bocana St,circle,Bocana St
-32,Operating,Kirkham St,Kirkham St & 07th Ave,east-west,"07th Ave, 08th Ave, 09th Ave, 10th Ave, 11th Ave, 12th Ave, Funston Ave, 14th Ave, 15th Ave, 16th Ave, 17th Ave, 18th Ave, 19th Ave, 20th Ave, 21st Ave, 22nd Ave, 23rd Ave, 24th Ave, 25th Ave, 26th Ave, 27th Ave, 28th Ave, 29th Ave, 30th Ave, 31st Ave, 32nd Ave, 33rd Ave, 34th Ave, 35th Ave, Pino Aly, 36th Ave, Sunset Blvd, 37th Ave, 38th Ave, 39th Ave, 40th Ave, 41st Ave, 42nd Ave, 43rd Ave, 44th Ave, 45th Ave, 46th Ave, 47th Ave, 48th Ave"
-33,Operating,Kirkham St,Kirkham St & Great Hwy,east-west,"07th Ave, 08th Ave, 09th Ave, 10th Ave, 11th Ave, 12th Ave, Funston Ave, 14th Ave, 15th Ave, 16th Ave, 17th Ave, 18th Ave, 19th Ave, 20th Ave, 21st Ave, 22nd Ave, 23rd Ave, 24th Ave, 25th Ave, 26th Ave, 27th Ave, 28th Ave, 29th Ave, 30th Ave, 31st Ave, 32nd Ave, 33rd Ave, 34th Ave, 35th Ave, Pino Aly, 36th Ave, Sunset Blvd, 37th Ave, 38th Ave, 39th Ave, 40th Ave, 41st Ave, 42nd Ave, 43rd Ave, 44th Ave, 45th Ave, 46th Ave, 47th Ave, 48th Ave"
-34,Operating,Lake St,Lake St & 02nd Ave,east-west,"02nd Ave, 03rd Ave, 04th Ave, 05th Ave, 06th Ave, 07th Ave, 08th Ave, 09th Ave, 10th Ave, 11th Ave, 12th Ave, Funston Ave, Park Presidio Blvd, 14th Ave, 15th Ave, 16th Ave, 17th Ave, 18th Ave, 19th Ave, 20th Ave, 21st Ave, 22nd Ave, 23rd Ave, 24th Ave, 25th Ave, 26th Ave, 27th Ave"
-35,Operating,Lake St,Lake St & 28th Ave,east-west,"02nd Ave, 03rd Ave, 04th Ave, 05th Ave, 06th Ave, 07th Ave, 08th Ave, 09th Ave, 10th Ave, 11th Ave, 12th Ave, Funston Ave, Park Presidio Blvd, 14th Ave, 15th Ave, 16th Ave, 17th Ave, 18th Ave, 19th Ave, 20th Ave, 21st Ave, 22nd Ave, 23rd Ave, 24th Ave, 25th Ave, 26th Ave, 27th Ave"
+21,Operating,Excelsior Ave,Excelsior Ave & London St,north-south,"London St, Paris St, Lisbon St, Madrid St, Edinburg St, Naples St, Vienna St, Athens St, Moscow St, Munich St, Excelsior Ave"
+22,Operating,Excelsior Ave,Excelsior Ave & Munich St,north-south,"London St, Paris St, Lisbon St, Madrid St, Edinburg St, Naples St, Vienna St, Athens St, Moscow St, Munich St, Excelsior Ave"
+23,Operating,Golden Gate Ave,Golden Gate Ave & Broderick St,east-west,
+24,Operating,Golden Gate Ave,Golden Gate Ave & Masonic Ave,east-west,
+25,Operating,Holly Park Circle,Holly Park Cir & Appleton Ave,circle,
+26,Operating,Holly Park Circle,Holly Park Cir & Highland Ave,circle,
+27,Operating,Holly Park Circle,Holly Park Cir & Park St,circle,
+28,Operating,Holly Park Circle,Holly Park Cir & Murray St,circle,
+29,Operating,Holly Park Circle,Holly Park Cir & Newman St,circle,
+30,Operating,Holly Park Circle,Holly Park Cir & Elsie St,circle,
+31,Operating,Holly Park Circle,Holly Park Cir & Bocana St,circle,
+32,Operating,Kirkham St,Kirkham St & 07th Ave,east-west,
+33,Operating,Kirkham St,Kirkham St & Great Hwy,east-west,
+34,Operating,Lake St,Lake St & 02nd Ave,east-west,
+35,Operating,Lake St,Lake St & 28th Ave,east-west,
 36,Operating,Lombard St,Lombard St & Powell St,east-west,Powell St
 37,Operating,Lombard St,Lombard St & Mason St,east-west,Powell St
-38,Operating,Mariposa St,Mariposa St & Mississippi St,east-west,"Mississippi St, Texas St, Missouri St, Connecticut St, Arkansas St, Carolina St, De Haro St, Rhode Island St"
-39,Operating,Mariposa St,Mariposa St & Kansas St,east-west,"Mississippi St, Texas St, Missouri St, Connecticut St, Arkansas St, Carolina St, De Haro St, Rhode Island St"
-40,Operating,Noe St,Noe St & Duboce Ave,north-south,"Duboce Ave, 14th St, Henry St, 15th St"
-41,Operating,Noe St,Noe St & Beaver St,north-south,"Duboce Ave, 14th St, Henry St, 15th St"
-42,Operating,Noe St,Noe St & 17th St,north-south,"17th St, Ford St"
-43,Operating,Noe St,Noe St & 18th St,north-south,"17th St, Ford St"
-44,Operating,Ortega St,Ortega St & 15th Ave,east-west,"15th Ave, 16th Ave, 17th Ave, Anglo Aly, 18th Ave, 19th Ave, 20th Ave, 21st Ave, 22nd Ave, 23rd Ave, 24th Ave, 25th Ave, 26th Ave, 27th Ave, 28th Ave, 29th Ave, 30th Ave, 31st Ave, 32nd Ave, 33rd Ave, 34th Ave, 35th Ave, 36th Ave, Sunset Blvd, 37th Ave, 38th Ave, 39th Ave, 40th Ave, 41st Ave, 42nd Ave, 43rd Ave, 44th Ave, 45th Ave, 46th Ave"
-45,Operating,Ortega St,Ortega St & 47th Ave,east-west,"15th Ave, 16th Ave, 17th Ave, Anglo Aly, 18th Ave, 19th Ave, 20th Ave, 21st Ave, 22nd Ave, 23rd Ave, 24th Ave, 25th Ave, 26th Ave, 27th Ave, 28th Ave, 29th Ave, 30th Ave, 31st Ave, 32nd Ave, 33rd Ave, 34th Ave, 35th Ave, 36th Ave, Sunset Blvd, 37th Ave, 38th Ave, 39th Ave, 40th Ave, 41st Ave, 42nd Ave, 43rd Ave, 44th Ave, 45th Ave, 46th Ave"
+38,Operating,Mariposa St,Mariposa St & Mississippi St,east-west,"Mississippi St, Texas St, Missouri St, Connecticut St, Arkansas St, California St, De Haro St, Rhode Island St, Kansas St"
+39,Operating,Mariposa St,Mariposa St & Kansas St,east-west,"Mississippi St, Texas St, Missouri St, Connecticut St, Arkansas St, California St, De Haro St, Rhode Island St, Kansas St"
+40,Operating,Noe St,Noe St & Duboce Ave,north-south,"Duboce Ave, 14th St, Henry St, 15th St, Beaver St"
+41,Operating,Noe St,Noe St & Beaver St,north-south,"Duboce Ave, 14th St, Henry St, 15th St, Beaver St"
+42,Operating,Noe St,Noe St & 17th St,north-south,17th St
+43,Operating,Noe St,Noe St & 18th St,north-south,17th St
+44,Operating,Ortega St,Ortega St & 15th Ave,east-west,
+45,Operating,Ortega St,Ortega St & 47th Ave,east-west,
 46,Operating,Pacific Ave,Pacific Ave & Gough St,east-west,"Gough St, Octavia St, Laguna St, Buchanan St, Webster St, Fillmore St"
 47,Operating,Pacific Ave,Pacific Ave & Steiner St,east-west,"Gough St, Octavia St, Laguna St, Buchanan St, Webster St, Fillmore St"
-48,Operating,Page St,Page St & Gough St,east-west,"Gough St, Octavia St, Laguna St, Buchanan St, Webster St, Fillmore St, Steiner St, Pierce St, Scott St, Divisadero St, Broderick St, Baker St, Lyon St, Central Ave, Masonic Ave, Ashbury St, Clayton St, Cole St, Shrader St"
-49,Operating,Page St,Page St & Stanyan St,east-west,"Gough St, Octavia St, Laguna St, Buchanan St, Webster St, Fillmore St, Steiner St, Pierce St, Scott St, Divisadero St, Broderick St, Baker St, Lyon St, Central Ave, Masonic Ave, Ashbury St, Clayton St, Cole St, Shrader St"
-50,Operating,Sanchez St,Sanchez St & 23rd St,north-south,"23rd St, Elizabeth St, 24th St, Jersey St, 25th St, Clipper St, 26th St, Cesar Chavez St, 27th St, Duncan St, 28th St, Valley St, 29th St, Day St"
-51,Operating,Sanchez St,Sanchez St & 30th St,north-south,"23rd St, Elizabeth St, 24th St, Jersey St, 25th St, Clipper St, 26th St, Cesar Chavez St, 27th St, Duncan St, 28th St, Valley St, 29th St, Day St"
-52,Operating,Shotwell St,Shotwell St & 14th St,north-south,"14th St, 15th St, 16th St, 17th St, 18th St, 19th St, 20th St, 21st St, 22nd St, 23rd St, 24th St, 25th St, 26th St"
-53,Operating,Shotwell St,Shotwell St & Cesar Chavez St,north-south,"14th St, 15th St, 16th St, 17th St, 18th St, 19th St, 20th St, 21st St, 22nd St, 23rd St, 24th St, 25th St, 26th St"
-54,Operating,Somerset St,Somerset St & Silver Ave,north-south,"Silver Ave, Silliman St, Felton St, Burrows St, Bacon St, Wayland St"
-55,Operating,Somerset St,Somerset St & Woolsey St,north-south,"Silver Ave, Silliman St, Felton St, Burrows St, Bacon St, Wayland St"
-56,Operating,Tompkins Ave,Tompkins Ave & Andover St,west-east,"Andover St, Moultrie St, Anderson St, Ellsworth St, Gates St, Folsom St, Banks St, Prentiss St, Nevada St"
-57,Operating,Tompkins Ave,Tompkins Ave & Putnam St,west-east,"Andover St, Moultrie St, Anderson St, Ellsworth St, Gates St, Folsom St, Banks St, Prentiss St, Nevada St"
-58,Proposed,Cayuga Ave,Cayuga Ave & Rousseau St,north-south,"Rousseau St, Rotteck St, Lyell St, Danton St, Lamartine St, Badger St, Gorham St, Tingley St, Theresa St, Cotter St, Santa Rosa Ave, San Juan Ave, Santa Ynez Ave, Ocean Ave, Valerton CT, Onondaga Ave, Balhi Ct, Oneida Ave, Sunbeam Ln, Junior Ter, Seneca Ave, Navajo Ave, Geneva Ave, Seminole Ave, Niagara Ave, Shawnee Ave, Mount Vernon Ave, Ottawa Ave, Rome St, Foote Ave, Modoc Ave, Naglee Ave"
-59,Proposed,Cayuga Ave,Cayuga Ave & Naglee Ave,north-south,"Rousseau St, Rotteck St, Lyell St, Danton St, Lamartine St, Badger St, Gorham St, Tingley St, Theresa St, Cotter St, Santa Rosa Ave, San Juan Ave, Santa Ynez Ave, Ocean Ave, Valerton CT, Onondaga Ave, Balhi Ct, Oneida Ave, Sunbeam Ln, Junior Ter, Seneca Ave, Navajo Ave, Geneva Ave, Seminole Ave, Niagara Ave, Shawnee Ave, Mount Vernon Ave, Ottawa Ave, Rome St, Foote Ave, Modoc Ave, Naglee Ave"
-60,Proposed,12th Ave,12th Ave & Lincoln Way,north-south,"Lincoln Way, Irving St, Judah St, Kirkham St, Lawton St, Moraga St"
-61,Proposed,12th Ave,12th Ave & Noriega St,north-south,"Lincoln Way, Irving St, Judah St, Kirkham St, Lawton St, Moraga St"
-62,Proposed,Armstrong Ave,Armstrong Ave & Kalmanovitz St ,circle,Kalmanovitz St
-63,Proposed,Armstrong Ave,Armstrong Ave & Newhall St,circle,
-64,Proposed,Armstrong Ave,Newhall St & Bitting Ave,circle,"Armstrong Ave, Carroll Ave, Lydia Ave"
-65,Proposed,Armstrong Ave,Bitting Ave & Kalmanovitz St,circle,Newhall St
-66,Proposed,Armstrong Ave,Kalmanovitz St & Osri Cir,circle,"Armstrong Ave, Orsi Cir, Lydia Ave"
-67,Proposed,Hearst Ave,Hearst Ave & Baden St,east-west,"Baden St, Congo St, Detroit St, Edna St, Foerster St, Gennessee St"
-68,Proposed,Hearst Ave,Hearst Ave & Ridgewood Ave,east-west,"Baden St, Congo St, Detroit St, Edna St, Foerster St, Gennessee St"
-69,Proposed,Hollister Ave,Hollister Ave & Hawes St,east-west,"Start: 900-999 Block, Hawes St, Ingalls St, Jennings St"
-70,Proposed,Hollister Ave,Hollister Ave & 03rd St,east-west,"Start: 900-999 Block, Hawes St, Ingalls St, Jennings St"
-71,Proposed,Lapu Lapu/Rizal/Tandang Sora/Bonifacio/Mabini,Mabini St & Folsom St,circle,Folsom St
+48,Operating,Page St,Page St & Gough St,east-west,
+49,Operating,Page St,Page St & Stanyan St,east-west,
+50,Operating,Sanchez St,Sanchez St & 23rd St,north-south,
+51,Operating,Sanchez St,Sanchez St & 30th St,north-south,
+52,Operating,Shotwell St,Shotwell St & 14th St,north-south,
+53,Operating,Shotwell St,Shotwell St & Cesar Chavez St,north-south,
+54,Operating,Somerset St,Somerset St & Silver Ave,north-south,
+55,Operating,Somerset St,Somerset St & Woolsey St,north-south,
+56,Operating,Tompkins Ave,Tompkins Ave & Putnam St,east-west,
+57,Operating,Tompkins Ave,Tompkins Ave & Andover St,east-west,
+58,Proposed,Cayuga Ave,Cayuga Ave & Rousseau St,north-south,"Rousseau St, Naglee Ave"
+59,Proposed,Cayuga Ave,Cayuga Ave & Naglee Ave,north-south,"Rousseau St, Naglee Ave"
+60,Proposed,12th Ave,12th Ave & Lincoln Way,north-south,
+61,Proposed,12th Ave,12th Ave & Noriega St,north-south,
+62,Proposed,Armstrong Ave,Armstrong Ave & Kalmanovitz St ,circle,"Kalmanovitz St, Newhall St"
+63,Proposed,Armstrong Ave,Armstrong Ave & Newhall St,circle,"Kalmanovitz St, Newhall St"
+64,Proposed,Armstrong Ave,Newhall St & Bitting Ave,circle,"Armstrong Ave, Carroll Ave, Lydia Ave, Bitting Ave"
+65,Proposed,Armstrong Ave,Bitting Ave & Kalmanovitz St,circle,"Newhall St, Kalmanovitz St"
+66,Proposed,Armstrong Ave,Kalmanovitz St &  Osri Cir,circle,"Armstrong Ave, Osri Cir, Lydia Ave"
+67,Proposed,Hearst Ave,Hearst Ave & Baden St,east-west,
+68,Proposed,Hearst Ave,Hearst Ave & Ridgewood Ave,east-west,
+69,Proposed,Hollister Ave,Hollister Ave & 03rd St,east-west,"Start: 900-999 Block, Hawes St, Ingalls St, Jennings St"
+70,Proposed,Hollister Ave,Hollister Ave & Hawes St,east-west,"Start: 900-999 Block, Hawes St, Ingalls St, Jennings St"
+71,Proposed,Lapu Lapu/Rizal/Tandang Sora/Bonifacio/Mabini,Mabini St & Folsom St,circle,"Folsom St, Bonifacio St"
 72,Proposed,Lapu Lapu/Rizal/Tandang Sora/Bonifacio/Mabini,Mabini St & Bonifacio St,circle,
 73,Proposed,Lapu Lapu/Rizal/Tandang Sora/Bonifacio/Mabini,Bonifacio St & Tandang Sora,circle,"Tandang Sora, Mabini St"
 74,Proposed,Lapu Lapu/Rizal/Tandang Sora/Bonifacio/Mabini,Tandang Sora & Rizal St,circle,Bonifacio St
-75,Proposed,Lapu Lapu/Rizal/Tandang Sora/Bonifacio/Mabini,Rizal St & Lapu-Lapu St,circle,Tandang Sora
+75,Proposed,Lapu Lapu/Rizal/Tandang Sora/Bonifacio/Mabini,Rizal St & Lapu-Lapu St,circle,
 76,Proposed,Lapu Lapu/Rizal/Tandang Sora/Bonifacio/Mabini,Bonifacio St & Lapu-Lapu St,circle,
 77,Proposed,Lapu Lapu/Rizal/Tandang Sora/Bonifacio/Mabini,Lapu-Lapu St & Harrison St,circle,"Harrison St, Rizal St"
-78,Proposed,Leland Ave,Leland Ave & Alpha St,east-west,"Alpha St, Peabody St, Rutland St, Cora St, Delta St, Schwerin St, Rey St, Elliot St, Britton St, Loehr St, Sawyer St"
-79,Proposed,Leland Ave,Leland Ave & Hahn St,east-west,"Alpha St, Peabody St, Rutland St, Cora St, Delta St, Schwerin St, Rey St, Elliot St, Britton St, Loehr St, Sawyer St"
-80,Proposed,Lyon St,Lyon St & Haight St,north-south,"Haight St, Page St, Fell St, Hayes St, Grove St, Fulton St, Mcallister St, Golden Gate Ave"
-81,Proposed,Lyon St,Lyon St & Turk Blvd,north-south,"Haight St, Page St, Fell St, Hayes St, Grove St, Fulton St, Mcallister St, Golden Gate Ave"
-82,Proposed,Mendell St,Mendell St & Evans Ave,north-south,"Evans Ave, Fairfax Ave, Galvez Ave, Hudson Ave, Innes Ave, Jerrold Ave, Kirkwood ave, La Salle Ave, Mckinnon Ave"
-83,Proposed,Mendell St,Mendell St & Newcomb Ave,north-south,"Evans Ave, Fairfax Ave, Galvez Ave, Hudson Ave, Innes Ave, Jerrold Ave, Kirkwood ave, La Salle Ave, Mckinnon Ave"
+78,Proposed,Leland Ave,Leland Ave & Alpha St,east-west,
+79,Proposed,Leland Ave,Leland Ave & Hahn St,east-west,
+80,Proposed,Lyon St,Lyon St & Turk Blvd,north-south,
+81,Proposed,Lyon St,Lyon St & Haight St,north-south,
+82,Proposed,Mendell St,Mendell St & Evans Ave,north-south,
+83,Proposed,Mendell St,Mendell St & Newcomb Ave,north-south,
 84,Proposed,Scotia/Thornton/Thomas,Scotia Ave & Silver Ave,north-south,"Silver Ave, Quint St, Maddux Ave"
 85,Proposed,Scotia/Thornton/Thomas,Scotia Ave & Thornton Ave,north-south,"Silver Ave, Quint St, Maddux Ave"
-86,Proposed,Scotia/Thornton/Thomas,Silver Ave & Thomas Ave,north-south,"Augusta St, Conkling St, Santa Fe Ave, Topeka Ave"
-87,Proposed,Scotia/Thornton/Thomas,Griffith St & Thomas Ave,north-south,
-88,Proposed,Scotia/Thornton/Thomas,Thomas Ave & 03rd St,north-south,"Griffith St, Hawes St, Ingalls St, Jennings St, Keith St, Lane St, Maddux Ave, Quint St, Robblee Ave, Silver Ave"
+86,Proposed,Scotia/Thornton/Thomas,Silver Ave & Thomas Ave,north-south,"Conkling St, Santa Fe Ave, Topeka Ave"
+87,Proposed,Scotia/Thornton/Thomas,Griffith St & Thomas Ave,north-south,"Maddux Ave, Quint St, Robblee Ave, Silver Ave"
+88,Proposed,Scotia/Thornton/Thomas,Thomas Ave & 03rd St,north-south,
