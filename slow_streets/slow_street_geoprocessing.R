@@ -3,7 +3,7 @@
 # 
 # AUTHOR: FRANCINE STEPHENS
 # DATE CREATED: 3/21/21
-# LAST UPDATED: 3/22/21
+# LAST UPDATED: 3/25/21
 #-------------------------------------
 
 # SET-UP------------------------------------------------------------------------
@@ -17,6 +17,7 @@ packages <- c(
   "leaflet",
   "mapboxapi",
   "scales",
+  "units",
   "ggcorrplot",
   "tmap",
   "tigris",
@@ -35,24 +36,38 @@ pword <- "SFdata2017"
 ## PATHS
 setwd("~/Projects/public_space/slow_streets")
 wd <- getwd()
-#sf_shapes_path <- "C:/Users/Franc/Documents/Shapefile_Repository/san_francisco_shapes/"
-
+shapefiles_path <- "C:/Users/Franc/Documents/Shapefile_Repository/"
+sf_shapes_path <- "san_francisco_shapes/"
+sf_nhoods_path <- "analysis_nhoods_2010_census_tracts/"
+zillow_nhoods_path <- "zillow_nhoods/"
 
 ## DATA IMPORT
 ss_intersections <- read_csv(paste0(wd,
-                                "/sf_slow_streets.csv")
-                         )
+                                    "/sf_slow_streets.csv")
+                            )
 
 sf_street_intersections <- read.socrata("https://data.sfgov.org/resource/jfxm-zeee.json", 
                                         app_token = socrata_token, 
                                         email = email,
                                         password  = pword
-)
+                                        )
 
 sf_streets_csv <- read.socrata("https://data.sfgov.org/resource/3psu-pn9h.csv",
                                app_token = socrata_token,
                                email     = email,
-                               password  = pword)
+                               password  = pword
+                               )
+
+zillow_nhoods <- st_read(paste0(shapefiles_path,
+                                zillow_nhoods_path,
+                                "zillow-neighborhoods.shp")
+                         )
+
+sf_nhoods_tracts10 <- st_read(paste0(shapefiles_path, 
+                                     sf_shapes_path, 
+                                     sf_nhoods_path, 
+                                     "geo_export_afde1190-a893-43d3-9611-1325253cf07f.shp")
+                    )   
 
 # GEOPROCESSING-----------------------------------------------------------------
 ## Process & Intersections (points)
@@ -76,7 +91,6 @@ irreg_config_streets <- c("Armstrong Ave",
                           "Lapu Lapu/Rizal/Tandang Sora/Bonifacio/Mabini",
                           "Scotia/Thornton/Thomas")
 
-
 segments_reg_config <- ss_intersections %>%
   filter(!name %in% irreg_config_streets) %>%
   separate(intersection, c("st1", "st2"), sep = " & ") %>%
@@ -96,7 +110,7 @@ segments_irreg_config <-  ss_intersections %>%
   unnest(segments) %>%
   distinct(st1, segments, .keep_all = TRUE) %>%
   ungroup()
-  
+
 all_ss_segments <- rbind(segments_reg_config, segments_irreg_config)  
 
 ss_street_segments <- streets_lines %>%
@@ -105,6 +119,17 @@ ss_street_segments <- streets_lines %>%
          t_st != "EGBERT AVE") %>%
   arrange(id, cnn)
 
+## Create multi-line string object
+ss_streets_lines <- ss_street_segments %>%
+  group_by(name) %>%
+  summarize(nblocks = n()) %>% 
+  st_set_crs(4326) %>%
+  st_transform(., crs = 7131) %>% # epsg for SF city/county in meters (NAD) 
+  mutate(length_meters = st_length(.),
+         length_miles = as.numeric(set_units(length_meters, mi))
+        )
+
+## VISUALIZATIONS
 leaflet() %>% 
   addMapboxTiles(
     style_id = "streets-v11",
@@ -116,152 +141,30 @@ leaflet() %>%
     label = ~name, 
   ) %>% 
   addPolylines(
-    data = ss_street_segments
+    data = ss_streets_lines %>% st_transform(., crs = 4326)
   )
 
 
-#addPolylines(data = ss_intersections_sf %>% 
-#               group_by(name) %>%
-#               summarise(do_union = FALSE) %>%
-#               st_cast("LINESTRING")
-#             )
-
-
-########### EXTRA STARTER CODE 
-
-
-  #T1
-ss_20th_ave <- streets_lines %>%
-  filter(streetname == "20TH AVE" & cnn %in% 1007000:1011000) %>%
-  arrange(cnn)
-
-ss_20th_st <- streets_lines %>%
-  filter(streetname == "20TH ST" & cnn %in% 1044000:1057000) %>%
-  arrange(cnn)
-
-ss_23rd_ave <- streets_lines %>%
-  filter(streetname == "23RD AVE" & cnn %in% 1211000:1216000) %>%
-  arrange(cnn)
-
-ss_41st_ave <- streets_lines %>%
-  filter(streetname == "41ST AVE" & cnn %in% 1910000:1923000) %>%
-  arrange(cnn)
-
-ss_arkansas_st <- streets_lines %>%
-  filter(streetname == "ARKANSAS ST" & cnn %in% 2436000:2442000) %>%
-  arrange(cnn)
-
-ss_arlington_st <- streets_lines %>%
-  filter(streetname == "ARLINGTON ST" & cnn %in% 2447000:2453000) %>%
-  arrange(cnn)
-
-ss_cabrillo_st <- streets_lines %>%
-  filter(streetname == "CABRILLO ST" & cnn %in% 3492000:3511000) %>%
-  arrange(cnn)
-
-ss_chenery_st <- streets_lines %>%
-  filter(streetname == "CHENERY ST" & cnn %in% 3930000:3931000) %>%
-  arrange(cnn)
-  
-ss_clay_st <- streets_lines %>%
-  filter(streetname == "CLAY ST" & cnn %in% 4113000:4126000) %>%
-  arrange(cnn)
-
-gg_ave_st <- streets_lines %>%
-  filter(streetname == "GOLDEN GATE AVE") %>%
-  arrange(cnn)
-  
-ss_kirkham_st <- streets_lines %>%
-  filter(streetname == "KIRKHAM ST") %>%
-  arrange(cnn)
-
-ss_lake_st <- streets_lines %>%
-  filter(streetname == "LAKE ST") %>%
-  arrange(cnn)
-
-ss_ortega_st <- streets_lines %>%
-  filter(streetname == "ORTEGA ST") %>%
-  arrange(cnn)
-
-ss_page_st <- streets_lines %>%
-  filter(streetname == "PAGE ST") %>%
-  arrange(cnn)
-
-ss_sanchez_st <- streets_lines %>%
-  filter(streetname == "SANCHEZ ST") %>%
-  arrange(cnn)
-
-ss_shotwell_st <- streets_lines %>%
-  filter(streetname == "SHOTWELL ST" ) %>%
-  arrange(cnn)
-
-ss_somerset_st <- streets_lines %>%
-  filter(streetname == "SOMERSET ST" ) %>%
-  arrange(cnn)
-
-ss_tompkins_ave <- streets_lines %>%
-  filter(streetname == "TOMPKINS AVE" ) %>%
-  arrange(cnn)
-
-ss_12th_ave <- streets_lines %>%
-  filter(streetname == "12TH AVE" ) %>%
-  arrange(cnn)
-
-ss_mendell_st <- streets_lines %>%
-  filter(streetname == "MENDELL ST" ) %>%
-  arrange(cnn)
-ss_excelsior_st <- streets_lines %>%
-  filter(streetname == "EXCELSIOR AVE" & f_st != "MISSION ST") %>%
-  arrange(cnn)
-ss_cayuga_ave <- streets_lines %>%
-  filter(streetname == "CAYUGA AVE" ) %>%
-  arrange(cnn)
-
-ss_hearst_ave <- streets_lines %>%
-  filter(streetname == "HEARST AVE" ) %>%
-  arrange(cnn)
-
-ss_lyon_st <- streets_lines %>%
-  filter(streetname == "LYON ST" ) %>%
-  arrange(cnn)
-
-ss_leland_ave <- streets_lines %>%
-  filter(streetname == "LELAND AVE" ) %>%
-  arrange(cnn)
-streets_lines %>%
-  filter(streetname == "HOLLY PARK CIR" ) %>%
-  arrange(cnn)
-
-ss_armstrong_kalmanovitz <- streets_lines %>%
-  filter(
-    streetname == "NEWHALL ST" | streetname == "KALMANOVITZ ST" | streetname == "BITTING AVE" | streetname == "ARMSTRONG AVE") %>%
-  arrange(cnn)
-
-ss_hollister_ave <- streets_lines %>%
-  filter(streetname == "HOLLISTER AVE") %>%
-  arrange(cnn)
-
-ss_lapulapu_et_al <- streets_lines %>%
-  filter(
-    streetname == "MABINI ST" | 
-      streetname == "BONIFACIO ST" | 
-      streetname == "TANDANG SORA" | 
-      streetname == "RIZAL ST" | 
-      streetname == "LAPU-LAPU ST" 
-  ) %>%
-  arrange(streetname, cnn)
-
-ss_scotia_silver_ave <- streets_lines %>%
-  filter(
-    streetname == "SCOTIA AVE" | 
-      streetname == "SILVER AVE" | 
-      streetname == "THOMAS AVE"
-  ) %>%
-  arrange(streetname, cnn)
-
-
-## VISUALIZE
 ggplot() + 
-  geom_sf(data = streets_lines) #+ 
+  geom_sf(data = ss_streets_lines) #+ 
   geom_polygon(data = )
 
+
+## NEIGHBORHOODS 
+sf_zillow_nhoods <- zillow_nhoods %>%
+  filter(county == "San Francisco")
+  
+sf_nhoods <- sf_nhoods_tracts10 %>%
+  st_set_crs(4326) %>%
+  group_by(nhood) %>%
+  summarize(ntracts = n())
+
+
+leaflet() %>%
+  addMapboxTiles(
+    style_id = "streets-v11",
+    username = "mapbox"
+  ) %>%
+  addPolygons(
+    data = sf_nhoods
+  )
