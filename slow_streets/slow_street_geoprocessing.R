@@ -67,6 +67,44 @@ ss_intersections_sf <- ss_intersections %>%
          id.y != "250079") %>%
   st_as_sf(., coords=c("longitude", "latitude"), crs=4326)
 
+
+## Process street segments
+streets_lines <- sf_streets_csv %>%
+         st_as_sf(., wkt = "line")
+
+irreg_config_streets <- c("Armstrong Ave",
+                          "Lapu Lapu/Rizal/Tandang Sora/Bonifacio/Mabini",
+                          "Scotia/Thornton/Thomas")
+
+
+segments_reg_config <- ss_intersections %>%
+  filter(!name %in% irreg_config_streets) %>%
+  separate(intersection, c("st1", "st2"), sep = " & ") %>%
+  group_by(name) %>%
+  mutate(across(starts_with("st"), toupper)) %>%
+  mutate(segments = strsplit(as.character(street_segments), ", ")) %>%
+  unnest(segments) %>%
+  distinct(st1, segments, .keep_all = TRUE) %>%
+  ungroup()
+
+segments_irreg_config <-  ss_intersections %>%
+  filter(name %in% irreg_config_streets & !is.na(street_segments)) %>%
+  separate(intersection, c("st1", "st2"), sep = " & ") %>%
+  group_by(name) %>%
+  mutate(across(starts_with("st"), toupper)) %>%
+  mutate(segments = strsplit(as.character(street_segments), ", ")) %>%
+  unnest(segments) %>%
+  distinct(st1, segments, .keep_all = TRUE) %>%
+  ungroup()
+  
+all_ss_segments <- rbind(segments_reg_config, segments_irreg_config)  
+
+ss_street_segments <- streets_lines %>%
+  right_join(., all_ss_segments, by = c("streetname" = "st1","f_st" = "segments")) %>%
+  filter(!is.na(cnn),
+         t_st != "EGBERT AVE") %>%
+  arrange(id, cnn)
+
 leaflet() %>% 
   addMapboxTiles(
     style_id = "streets-v11",
@@ -76,34 +114,21 @@ leaflet() %>%
     data = ss_intersections_sf,
     radius = 1,
     label = ~name, 
-  ) %>%
-  addPolylines(data = ss_intersections_sf %>% 
-                 group_by(name) %>%
-                 summarise(do_union = FALSE) %>%
-                 st_cast("LINESTRING")
-               )
+  ) %>% 
+  addPolylines(
+    data = ss_street_segments
+  )
 
-street_names <- ss_intersections %>%
-  select(name) %>%
-  mutate(name = toupper(name)) %>%
-  unique()
 
-## Process street segments
-streets_lines <- sf_streets_csv %>%
-         st_as_sf(., wkt = "line")
+#addPolylines(data = ss_intersections_sf %>% 
+#               group_by(name) %>%
+#               summarise(do_union = FALSE) %>%
+#               st_cast("LINESTRING")
+#             )
 
-  #T2 
-segments_to_be_filtered <- ss_intersections %>%
-  slice(1:8) %>%
-  separate(intersection, c("st1", "st2"), sep = " & ") %>%
-  group_by(name) %>%
-  mutate(st_t = lead(st2)) %>%
-  filter(!is.na(st_t)) %>%
-  mutate(across(starts_with("st"), toupper))
-  
-streets_lines %>%
-  filter(streetname %in% segments_to_be_filtered$st1) %>%
-  which(.$f_st %in% segments_to_be_filtered$st2)
+
+########### EXTRA STARTER CODE 
+
 
   #T1
 ss_20th_ave <- streets_lines %>%
@@ -142,7 +167,45 @@ ss_clay_st <- streets_lines %>%
   filter(streetname == "CLAY ST" & cnn %in% 4113000:4126000) %>%
   arrange(cnn)
 
+gg_ave_st <- streets_lines %>%
+  filter(streetname == "GOLDEN GATE AVE") %>%
+  arrange(cnn)
+  
+ss_kirkham_st <- streets_lines %>%
+  filter(streetname == "KIRKHAM ST") %>%
+  arrange(cnn)
 
+ss_lake_st <- streets_lines %>%
+  filter(streetname == "LAKE ST") %>%
+  arrange(cnn)
+
+ss_ortega_st <- streets_lines %>%
+  filter(streetname == "ORTEGA ST") %>%
+  arrange(cnn)
+
+ss_page_st <- streets_lines %>%
+  filter(streetname == "PAGE ST") %>%
+  arrange(cnn)
+
+ss_sanchez_st <- streets_lines %>%
+  filter(streetname == "SANCHEZ ST") %>%
+  arrange(cnn)
+
+ss_shotwell_st <- streets_lines %>%
+  filter(streetname == "SHOTWELL ST" ) %>%
+  arrange(cnn)
+
+ss_somerset_st <- streets_lines %>%
+  filter(streetname == "SOMERSET ST" ) %>%
+  arrange(cnn)
+
+ss_tompkins_ave <- streets_lines %>%
+  filter(streetname == "TOMPKINS AVE" ) %>%
+  arrange(cnn)
+
+ss_12th_ave <- streets_lines %>%
+  filter(streetname == "12TH AVE" ) %>%
+  arrange(cnn)
 
 ss_mendell_st <- streets_lines %>%
   filter(streetname == "MENDELL ST" ) %>%
@@ -154,19 +217,24 @@ ss_cayuga_ave <- streets_lines %>%
   filter(streetname == "CAYUGA AVE" ) %>%
   arrange(cnn)
 
+ss_hearst_ave <- streets_lines %>%
+  filter(streetname == "HEARST AVE" ) %>%
+  arrange(cnn)
+
+ss_lyon_st <- streets_lines %>%
+  filter(streetname == "LYON ST" ) %>%
+  arrange(cnn)
+
+ss_leland_ave <- streets_lines %>%
+  filter(streetname == "LELAND AVE" ) %>%
+  arrange(cnn)
+streets_lines %>%
+  filter(streetname == "HOLLY PARK CIR" ) %>%
+  arrange(cnn)
+
 ss_armstrong_kalmanovitz <- streets_lines %>%
   filter(
     streetname == "NEWHALL ST" | streetname == "KALMANOVITZ ST" | streetname == "BITTING AVE" | streetname == "ARMSTRONG AVE") %>%
-  arrange(cnn)
-  filter(
-    streetname == "MABINI ST" | 
-      streetname == "FOLSOM ST" | 
-      streetname == "BONIFACIO ST" | 
-      streetname == "TANDANG SORA" | 
-      streetname == "RIZAL ST" | 
-      streetname == "LAPU-LAPU ST" | 
-      streetname == "HARRISON ST"
-    ) %>%
   arrange(cnn)
 
 ss_hollister_ave <- streets_lines %>%
