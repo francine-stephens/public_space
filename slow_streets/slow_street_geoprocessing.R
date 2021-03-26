@@ -32,6 +32,8 @@ lapply(packages, library, character.only = T)
 socrata_token <- "EZnaKCxOX6zj0uyTkD340TWLh"
 email <- "fis@stanford.edu"
 pword <- "SFdata2017"
+wgs <- 4326
+proj_meters <- 7131   # epsg for SF city/county in meters (NAD) 
 
 ## PATHS
 setwd("~/Projects/public_space/slow_streets")
@@ -39,7 +41,6 @@ wd <- getwd()
 shapefiles_path <- "C:/Users/Franc/Documents/Shapefile_Repository/"
 sf_shapes_path <- "san_francisco_shapes/"
 sf_nhoods_path <- "analysis_nhoods_2010_census_tracts/"
-zillow_nhoods_path <- "zillow_nhoods/"
 
 ## DATA IMPORT
 ss_intersections <- read_csv(paste0(wd,
@@ -58,11 +59,6 @@ sf_streets_csv <- read.socrata("https://data.sfgov.org/resource/3psu-pn9h.csv",
                                password  = pword
                                )
 
-zillow_nhoods <- st_read(paste0(shapefiles_path,
-                                zillow_nhoods_path,
-                                "zillow-neighborhoods.shp")
-                         )
-
 sf_nhoods_tracts10 <- st_read(paste0(shapefiles_path, 
                                      sf_shapes_path, 
                                      sf_nhoods_path, 
@@ -80,19 +76,15 @@ ss_intersections_sf <- ss_intersections %>%
   select_at(vars(-contains("_coord"))) %>%
   filter(id.y != "244828",
          id.y != "250079") %>%
-  st_as_sf(., coords=c("longitude", "latitude"), crs=4326)
+  st_as_sf(., coords=c("longitude", "latitude"), crs = wgs)
 
 
 ## Process street segments
 streets_lines <- sf_streets_csv %>%
          st_as_sf(., wkt = "line")
 
-irreg_config_streets <- c("Armstrong Ave",
-                          "Lapu Lapu/Rizal/Tandang Sora/Bonifacio/Mabini",
-                          "Scotia/Thornton/Thomas")
-
-segments_reg_config <- ss_intersections %>%
-  filter(!name %in% irreg_config_streets) %>%
+all_ss_segments <- ss_intersections %>%
+  filter(!is.na(street_segments)) %>%
   separate(intersection, c("st1", "st2"), sep = " & ") %>%
   group_by(name) %>%
   mutate(across(starts_with("st"), toupper)) %>%
@@ -100,31 +92,32 @@ segments_reg_config <- ss_intersections %>%
   unnest(segments) %>%
   distinct(st1, segments, .keep_all = TRUE) %>%
   ungroup()
-
-segments_irreg_config <-  ss_intersections %>%
-  filter(name %in% irreg_config_streets & !is.na(street_segments)) %>%
-  separate(intersection, c("st1", "st2"), sep = " & ") %>%
-  group_by(name) %>%
-  mutate(across(starts_with("st"), toupper)) %>%
-  mutate(segments = strsplit(as.character(street_segments), ", ")) %>%
-  unnest(segments) %>%
-  distinct(st1, segments, .keep_all = TRUE) %>%
-  ungroup()
-
-all_ss_segments <- rbind(segments_reg_config, segments_irreg_config)  
 
 ss_street_segments <- streets_lines %>%
   right_join(., all_ss_segments, by = c("streetname" = "st1","f_st" = "segments")) %>%
   filter(!is.na(cnn),
          t_st != "EGBERT AVE") %>%
-  arrange(id, cnn)
+  arrange(id, cnn) %>%
+  st_set_crs(wgs) %>%
+  st_transform(., crs = proj_meters) %>%  
+  mutate(length_meters = st_length(.),
+         length_miles = as.numeric(set_units(length_meters, mi))
+         )
+
+ss_length_by_nhood <- ss_street_segments %>%
+  mutate_if(is.character, list(~na_if(.,""))) %>%
+  mutate(nhood = str_replace_na(nhood, "Outer Mission")) %>%
+  group_by(nhood, name) %>% 
+  summarize(across(starts_with("length"), ~sum(.x, na.rm = TRUE))) %>%
+  arrange(nhood, -length_meters)
+  
 
 ## Create multi-line string object
 ss_streets_lines <- ss_street_segments %>%
   group_by(name) %>%
   summarize(nblocks = n()) %>% 
-  st_set_crs(4326) %>%
-  st_transform(., crs = 7131) %>% # epsg for SF city/county in meters (NAD) 
+  st_set_crs(wgs) %>%
+  st_transform(., crs = proj_meters) %>%  
   mutate(length_meters = st_length(.),
          length_miles = as.numeric(set_units(length_meters, mi))
         )
@@ -141,7 +134,7 @@ leaflet() %>%
     label = ~name, 
   ) %>% 
   addPolylines(
-    data = ss_streets_lines %>% st_transform(., crs = 4326)
+    data = ss_streets_lines %>% st_transform(., crs = wgs)
   )
 
 
@@ -151,13 +144,13 @@ ggplot() +
 
 
 ## NEIGHBORHOODS 
-sf_zillow_nhoods <- zillow_nhoods %>%
-  filter(county == "San Francisco")
-  
 sf_nhoods <- sf_nhoods_tracts10 %>%
-  st_set_crs(4326) %>%
+  st_set_crs(wgs) %>%
   group_by(nhood) %>%
-  summarize(ntracts = n())
+  summarize(ntracts = n()) %>%
+  st_transform(., crs = st_crs(proj_meters))
+
+
 
 
 leaflet() %>%
@@ -166,5 +159,13 @@ leaflet() %>%
     username = "mapbox"
   ) %>%
   addPolygons(
-    data = sf_nhoods
+    data = sf_zillow_nhoods %>% st_transform(., crs = wgs),
+    color = "red",
+    weight = 2,
+    label = ~name
+  ) %>% 
+  addPolylines(
+    data = ss_streets_lines %>% st_transform(., crs = wgs),
+    color = "blue",
+    label = ~name
   )
