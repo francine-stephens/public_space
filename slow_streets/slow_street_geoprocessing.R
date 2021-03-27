@@ -1,10 +1,10 @@
-#-------------------------------------
-# GEOPROCESSING
+#------------------------------------------------------------
+# GEOPROCESSING & CLEANING SLOW STREETS & NEIGHBORHOOD DATA
 # 
 # AUTHOR: FRANCINE STEPHENS
 # DATE CREATED: 3/21/21
-# LAST UPDATED: 3/25/21
-#-------------------------------------
+# LAST UPDATED: 3/26/21
+#-------------------------------------------------------------
 
 # SET-UP------------------------------------------------------------------------
 ## LIBRARIES
@@ -93,6 +93,7 @@ all_ss_segments <- ss_intersections %>%
   distinct(st1, segments, .keep_all = TRUE) %>%
   ungroup()
 
+
 ss_street_segments <- streets_lines %>%
   right_join(., all_ss_segments, by = c("streetname" = "st1","f_st" = "segments")) %>%
   filter(!is.na(cnn),
@@ -104,13 +105,30 @@ ss_street_segments <- streets_lines %>%
          length_miles = as.numeric(set_units(length_meters, mi))
          )
 
-ss_length_by_nhood <- ss_street_segments %>%
+
+ss_street_segment_points <- st_cast(ss_street_segments, "POINT") %>%
+  distinct(line, .keep_all = TRUE)
+
+
+## Aggregations of street segments
+ss_length_table <- ss_street_segments %>%
+  group_by(name) %>%
+  summarize(across(starts_with("length"), ~sum(.x, na.rm = TRUE))) %>%
+  arrange(-length_meters)
+
+ss_length_by_nhood_ss <- ss_street_segments %>%
   mutate_if(is.character, list(~na_if(.,""))) %>%
   mutate(nhood = str_replace_na(nhood, "Outer Mission")) %>%
   group_by(nhood, name) %>% 
   summarize(across(starts_with("length"), ~sum(.x, na.rm = TRUE))) %>%
   arrange(nhood, -length_meters)
-  
+
+ss_length_by_nhood <- ss_length_by_nhood_ss %>%
+  group_by(nhood) %>%
+  summarize(across(starts_with("length"), ~sum(.x, na.rm = TRUE)),
+            n_ss = n(),
+            slow_streets = toString(name)) %>%
+  arrange(-length_meters)
 
 ## Create multi-line string object
 ss_streets_lines <- ss_street_segments %>%
