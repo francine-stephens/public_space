@@ -109,7 +109,38 @@ ss_street_segments <- streets_lines %>%
 ss_street_segment_points <- st_cast(ss_street_segments, "POINT") %>%
   distinct(line, .keep_all = TRUE)
 
+  
+  ## BUILD ISOCHRONES
+  ss_10_min_walk_iso <- mb_isochrone(
+    ss_street_segment_points,
+    profile = "walking",
+    time = 10
+  )
 
+  ss_10_min_walk_iso_info <- ss_street_segment_points %>% 
+    st_set_geometry(NULL) %>% 
+    cbind(ss_10_min_walk_iso$geometry) %>% 
+    st_as_sf() %>%
+    group_by(name) %>% 
+    summarize()
+  
+  leaflet() %>% 
+    addMapboxTiles(
+      style_id = "streets-v11",
+      username = "mapbox"
+    ) %>%
+    addPolygons(
+      data = ss_10_min_walk_iso_info %>%
+        st_transform(., crs = wgs),
+      label = ~name
+    ) %>% 
+    addPolylines(
+      data = ss_streets_lines %>% st_transform(., crs = wgs),
+      color = "red",
+      label = ~name, 
+    ) 
+  
+  
 ## Aggregations of street segments
 ss_length_table <- ss_street_segments %>%
   group_by(name) %>%
@@ -130,6 +161,7 @@ ss_length_by_nhood <- ss_length_by_nhood_ss %>%
             slow_streets = toString(name)) %>%
   arrange(-length_meters)
 
+
 ## Create multi-line string object
 ss_streets_lines <- ss_street_segments %>%
   group_by(name) %>%
@@ -139,6 +171,7 @@ ss_streets_lines <- ss_street_segments %>%
   mutate(length_meters = st_length(.),
          length_miles = as.numeric(set_units(length_meters, mi))
         )
+
 
 ## VISUALIZATIONS
 leaflet() %>% 
@@ -157,7 +190,7 @@ leaflet() %>%
 
 
 ggplot() + 
-  geom_sf(data = ss_streets_lines) #+ 
+  geom_sf(data = streets_lines) #+ 
   geom_polygon(data = )
 
 
