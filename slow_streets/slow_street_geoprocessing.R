@@ -3,7 +3,7 @@
 # 
 # AUTHOR: FRANCINE STEPHENS
 # DATE CREATED: 3/21/21
-# LAST UPDATED: 3/27/21
+# LAST UPDATED: 3/28/21
 #-------------------------------------------------------------
 
 # SET-UP------------------------------------------------------------------------
@@ -19,12 +19,10 @@ packages <- c(
   "mapboxapi",
   "scales",
   "units",
-  "ggcorrplot",
   "tmap",
   "tigris",
   "censusapi", 
   "tidycensus",
-  "corrplot",
   "RColorBrewer"
 )
 lapply(packages, library, character.only = T)
@@ -281,7 +279,7 @@ ss_lines_with_service_area_demogs <- ss_10_min_serv_area_demogs %>%
 
   #### Visualize ####
 ss_demog_pal <- colorNumeric(
-  palette = "Reds",
+  palette = "Purples",
   domain = ss_lines_with_service_area_demogs$tpop
 )
  
@@ -308,3 +306,13 @@ leaflet() %>%
     values = ~tpop,
     title = "Residents Served by Slow Streets"
   )
+
+
+##### NEXT STEPS ######
+
+# Figure out comparisons & Create data/spatial objects for them - 
+  # 1) slow street service area compared to neighborhood(s) that enclose slow streets 
+  # AND/OR 2) neighborhood averages in the city, 
+  # AND/OR 3) city totals.
+
+# Any additional variables to add? e.g., common commute type, especially walking.
