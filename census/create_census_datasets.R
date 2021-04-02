@@ -3,7 +3,7 @@
 # 
 # AUTHOR: FRANCINE STEPHENS
 # DATE CREATED: 2/26/21
-# LAST UPDATED: 3/4/21
+# LAST UPDATED: 4/1/21
 #-------------------------------------
 
 ## LIBRARIES
@@ -18,9 +18,15 @@ wd <- getwd()
 census90_path <- "/nhgis1990_csv/nhgis0017_ds120_1990_block.csv"
 census00_path <- "/nhgis2000_csv/nhgis0018_ds147_2000_block.csv"
 census10_path <- "/nhgis2010_csv/nhgis0019_ds172_2010_block.csv"
+censusinc_path <- "/nhgisincome_csv/"
+inc90_path <- "nhgis0023_ds123_1990_blck_grp_598.csv"
+inc00_path <- "nhgis0023_ds152_2000_blck_grp_090.csv"
+inc10_path <- "nhgis0023_ds176_20105_2010_blck_grp_E.csv"
 cw_path <- "/crosswalks/"
 cw_1990_path <- "nhgis_blk1990_blk2010_gj.csv"
 cw_2000_path <- "nhgis_blk2000_blk2010_ge.csv"
+cw_1990_bgp_path <- "nhgis_bgp1990_bg2010.csv"
+cw_2000_bgp_path <- "nhgis_bgp2000_bg2010.csv"
 
 #CLEAN & PROCESS 2010-----------------------------------------------------------
 census10 <- read_csv(paste0(wd,
@@ -108,7 +114,7 @@ renamed_10_vars <- c("GISJOIN",
                       "RENTER_OCC"
 )
 
-#
+# REDUCE 2010 CENSUS BLOCK DATA
 census10_red <- census10 %>% 
   slice(-1) %>%
   select(all_of(selected_10_vars)) %>%
@@ -118,7 +124,9 @@ saveRDS(census10_red, "census_blocks_2010.rds")
 
 rm(census10, census10_red)
 
+######################################
 ## AGGREGATE 2010 RACE DATA INTO CBGs
+#######################################
 census_blocks_2010 <- readRDS("census_blocks_2010.rds")
 
 cbg_10_census <- census_blocks_2010 %>%
@@ -138,6 +146,20 @@ cbg_10_census <- census_blocks_2010 %>%
             HISPANIC_10 = sum(HISPANIC)
   )
 saveRDS(cbg_10_census, "race_10_on_10_cbg.rds")
+rm(cbg_10_census)
+
+####################################
+# AGGREGATE 2010 HOUSING INTO CBGs
+###################################
+cbg_10_census <- census_blocks_2010 %>% 
+  select(STATE_C, COUNTY_C, TRACT_C, BLCK_GRP_C, H_UNITS:RENTER_OCC) %>%
+  mutate(CBG_10 = str_c(STATE_C, COUNTY_C, TRACT_C, BLCK_GRP_C, sep = "")) %>%
+  mutate(across(H_UNITS:RENTER_OCC, as.numeric)) %>%
+  group_by(CBG_10) %>%
+  summarize(across(where(is.numeric), ~sum(.x)))
+
+saveRDS(cbg_10_census, "housing_10_on_10_cbg.rds")
+rm(cbg_10_census, census_blocks_2010)
 
 
 #CLEAN & PROCESS 1990-----------------------------------------------------------
@@ -222,6 +244,10 @@ rm(census90)
 saveRDS(census90_red, "census_blocks_1990.rds")
 census90_red <- readRDS("census_blocks_1990.rds")
 
+##################
+# RACE DATA
+##################
+
 ## HISPANIC---------------------------------------------------------------------
 census90_hisp <- census90_red %>%
   select(GISJOIN, WHITE_HISP:OTHER_RACE_HISP) %>%
@@ -300,6 +326,31 @@ full_census_90_race_on_10_cbg <- full_census_90_race_on_10_geog %>%
 saveRDS(full_census_90_race_on_10_cbg, "race_90_on_10_cbg.rds")
 
 rm(full_census_90_race_on_10_cbg, full_census_90_race_on_10_geog)
+
+#################
+# HOUSING DATA
+#################
+census90_housing <- census90_red %>%
+  select(GISJOIN, H_UNITS:RENTER_OCC) %>%
+  mutate(across(where(is.character) & !c(GISJOIN), as.numeric)) %>%
+  left_join(., cw_1990, by = c("GISJOIN" = "GJOIN1990")) %>%
+  select(-PAREA_VIA_BLK00)
+rm(census90_red, cw_1990)
+  
+weighted_estimates <- census90_housing %>%
+  mutate(across(where(is.numeric) & !c(WEIGHT), ~. * WEIGHT)) %>%
+  select(-WEIGHT, -GISJOIN) 
+rm(census90_housing)
+  
+cbg_90_census <- weighted_estimates %>%
+  select(GJOIN2010, H_UNITS:RENTER_OCC) %>%
+  mutate(CBG_10 = str_sub(GJOIN2010, end = -4)) %>%
+  select(-GJOIN2010) %>%
+  group_by(CBG_10) %>%
+  summarize(across(where(is.numeric), ~sum(.x)))
+
+saveRDS(cbg_90_census, "housing_90_on_10_cbg.rds")
+rm(weighted_estimates, cbg_90_census)
 
 #CLEAN & PROCESS 2000-----------------------------------------------------------
 census00 <- read_csv(paste0(wd,
@@ -490,3 +541,29 @@ full_census00_race_on_10_cbg <- census00_on_10_geog %>%
             HISPANIC_00 = sum(HISPANIC_00)
   )
 saveRDS(full_census00_race_on_10_cbg, "race_00_on_10_cbg.rds")
+
+#################
+# HOUSING DATA
+#################
+census00_housing <- census00_red %>%
+  select(STATE_C, COUNTY_C, TRACT_C, BLOCK_C, H_UNITS:VACANT_UNITS) %>%
+  mutate(GEOID00 = str_c(STATE_C, COUNTY_C, TRACT_C, BLOCK_C, sep = "")) %>%
+  mutate(across(where(is.character) & !c(GEOID00), as.numeric)) %>%
+  left_join(., cw_2000, by = "GEOID00") %>%
+  select(-STATE_C:-BLOCK_C, -PAREA)
+rm(census00_red, cw_2000)
+
+weighted_estimates <- census00_housing %>%
+  mutate(across(where(is.numeric) & !c(WEIGHT), ~. * WEIGHT)) %>%
+  select(-WEIGHT, -GEOID00) 
+rm(census00_housing)
+
+cbg_00_census <- weighted_estimates %>%
+  select(GEOID10, H_UNITS:VACANT_UNITS) %>%
+  mutate(CBG_10 = str_sub(GEOID10, end = -4)) %>%
+  select(-GEOID10) %>%
+  group_by(CBG_10) %>%
+  summarize(across(where(is.numeric), ~sum(.x)))
+
+saveRDS(cbg_00_census, "housing_00_on_10_cbg.rds")
+rm(weighted_estimates, cbg_00_census)
