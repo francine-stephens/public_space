@@ -9,6 +9,7 @@ census/census_blocks_2000.rds
 census/census_blocks_2010.rds
 census/census_var_names.xlsx
 census/crosswalks/
+census/nhgisinc_csv/
 census/hisp_00_on_10_geog.rds
 census/nhgis1990_csv/
 census/nhgis2000_csv/
