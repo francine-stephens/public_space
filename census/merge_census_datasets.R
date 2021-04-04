@@ -153,11 +153,50 @@ housing_all_decades_cbg10 <- rbind(housing90_edited,
   arrange(GEOID, wave)
 
 saveRDS(housing_all_decades_cbg10, "all_years_housing_on_cbg10_LONG.rds")
-
+rm(housing_all_decades_cbg10,
+   housing00,
+   housing00_edited, 
+   housing10,
+   housing10_edited,
+   housing19_edited,
+   housing90,
+   housing90_edited)
 
 ################ 
 # INCOME VARS
 ################
-inc90
+inc90_edited <- inc90 %>%
+  mutate(HH = rowSums(across(INC_LT10K:INC_150KPLUS))) %>%
+  relocate(GEOID, wave, HH)
 
+inc00_edited <- inc00 %>%
+  mutate(INC_150KPLUS = INC_150KTO199999 + INC_200KPLUS) %>%
+  select(-INC_150KTO199999:-INC_200KPLUS) %>% 
+  mutate(HH = rowSums(across(INC_LT10K:INC_150KPLUS))) %>%
+  relocate(GEOID, wave, HH)
 
+inc10_edited <- inc10 %>% 
+  mutate(CBG_10 = str_replace_all(GISJOIN, "G", ""),
+         state = str_sub(CBG_10, end=2),
+         county = str_sub(CBG_10, start=4, end=6),
+         tract = str_sub(CBG_10, start=8, end=13),
+         cbg = str_sub(CBG_10, start=-1),
+         GEOID = str_c(state, county, tract, cbg, sep="")) %>%
+  select(-CBG_10, -state:-cbg) %>%
+  mutate(INC_150KPLUS = INC_150KTO199999 + INC_200KPLUS) %>%
+  select(-GISJOIN, -INC_150KTO199999:-INC_200KPLUS) %>%
+  relocate(GEOID, wave)
+
+inc19_edited <- inc_housing19 %>%
+  select(GEOID, wave, HH:INC_200KPLUS) %>%
+  mutate(INC_150KPLUS = INC_150KTO199999 + INC_200KPLUS) %>%
+  select(-INC_150KTO199999:-INC_200KPLUS)
+
+## APPEND ALL DATASETS & EXPORT
+income_all_decades_cbg10 <- rbind(inc90_edited,
+                                  inc00_edited, 
+                                  inc10_edited, 
+                                  inc19_edited) %>%
+  arrange(GEOID, wave)
+                                  
+saveRDS(income_all_decades_cbg10, "all_years_income_on_cbg10_LONG.rds")
