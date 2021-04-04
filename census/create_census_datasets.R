@@ -3,7 +3,7 @@
 # 
 # AUTHOR: FRANCINE STEPHENS
 # DATE CREATED: 2/26/21
-# LAST UPDATED: 4/1/21
+# LAST UPDATED: 4/3/21
 #-------------------------------------
 
 ## LIBRARIES
@@ -18,7 +18,7 @@ wd <- getwd()
 census90_path <- "/nhgis1990_csv/nhgis0017_ds120_1990_block.csv"
 census00_path <- "/nhgis2000_csv/nhgis0018_ds147_2000_block.csv"
 census10_path <- "/nhgis2010_csv/nhgis0019_ds172_2010_block.csv"
-censusinc_path <- "/nhgisincome_csv/"
+censusinc_path <- "/nhgisinc_csv/"
 inc90_path <- "nhgis0023_ds123_1990_blck_grp_598.csv"
 inc00_path <- "nhgis0023_ds152_2000_blck_grp_090.csv"
 inc10_path <- "nhgis0023_ds176_20105_2010_blck_grp_E.csv"
@@ -161,6 +161,47 @@ cbg_10_census <- census_blocks_2010 %>%
 saveRDS(cbg_10_census, "housing_10_on_10_cbg.rds")
 rm(cbg_10_census, census_blocks_2010)
 
+
+####################################
+# AGGREGATE 2010 INCOME INTO CBGs
+###################################
+census10inc <- read_csv(paste0(wd, 
+                               censusinc_path,
+                               inc10_path))
+
+renamed_10_inc_vars <- c("GISJOIN", 
+                         "YEAR",
+                         "HH",
+                         "INC_LT10K",
+                         "INC_10KTO14999",
+                         "INC_15KTO19999",
+                         "INC_20KTO24999",
+                         "INC_25KTO29999",
+                         "INC_30KTO34999",
+                         "INC_35KTO39999",
+                         "INC_40KTO44999",
+                         "INC_45KTO49999",
+                         "INC_50KTO59999",
+                         "INC_60KTO74999",
+                         "INC_75KTO99999",
+                         "INC_100KTO124999",
+                         "INC_125KTO149999",
+                         "INC_150KTO199999",
+                         "INC_200KPLUS"
+                        )
+                          
+
+census10inc_red <- census10inc %>% 
+  slice(-1) %>%
+  select(GISJOIN:YEAR, JOHE001:JOHE017) %>%
+  rename_at(vars(GISJOIN:JOHE017), ~ renamed_10_inc_vars) %>%
+  mutate(across(HH:INC_200KPLUS, as.numeric)) %>%
+  mutate(wave = str_remove(YEAR, "2006-")) %>%
+  select(-YEAR) %>%
+  relocate(wave, .after = GISJOIN)
+
+saveRDS(census10inc_red, "income_10_on_10_cbg.rds")
+rm(census10inc, census10inc_red)
 
 #CLEAN & PROCESS 1990-----------------------------------------------------------
 census90 <- read_csv(paste0(wd, 
@@ -351,6 +392,52 @@ cbg_90_census <- weighted_estimates %>%
 
 saveRDS(cbg_90_census, "housing_90_on_10_cbg.rds")
 rm(weighted_estimates, cbg_90_census)
+
+
+####################################
+# AGGREGATE 1990 INCOME INTO CBGs
+###################################
+census90inc <- read_csv(paste0(wd, 
+                               censusinc_path,
+                               inc90_path))
+
+renamed_90_inc_vars <- c("GISJOIN", 
+                         "YEAR",
+                         "INC_LT5K",
+                         "INC_5KTO9999",
+                         "",
+                         "INC_LT10K",
+                         "INC_10KTO14999",
+                         "INC_15KTO19999",
+                         "INC_20KTO24999",
+                         "INC_25KTO29999",
+                         "INC_30KTO34999",
+                         "INC_35KTO39999",
+                         "INC_40KTO44999",
+                         "INC_45KTO49999",
+                         "INC_50KTO59999",
+                         "INC_60KTO74999",
+                         "INC_75KTO99999",
+                         "INC_100KTO124999",
+                         "INC_125KTO149999",
+                         "INC_150KTO199999"
+)
+
+
+census90inc_red <- census90inc %>% 
+  slice(-1) %>%
+  select(GISJOIN:YEAR, E4T001:E4T025) %>%
+  rename_at(vars(GISJOIN:JOHE017), ~ renamed_10_inc_vars) %>%
+  mutate(across(HH:INC_200KPLUS, as.numeric)) %>%
+  mutate(wave = str_remove(YEAR, "2006-")) %>%
+  select(-YEAR) %>%
+  relocate(wave, .after = GISJOIN)
+
+saveRDS(census10inc_red, "income_10_on_10_cbg.rds")
+rm(census10inc, census10inc_red)
+
+
+
 
 #CLEAN & PROCESS 2000-----------------------------------------------------------
 census00 <- read_csv(paste0(wd,
