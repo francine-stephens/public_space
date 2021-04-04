@@ -3,7 +3,7 @@
 # 
 # AUTHOR: FRANCINE STEPHENS
 # DATE CREATED: 2/26/21
-# LAST UPDATED: 4/3/21
+# LAST UPDATED: 4/4/21
 #-------------------------------------
 
 ## LIBRARIES
@@ -469,14 +469,7 @@ census90_bgp_cw <- read_csv(paste0(wd,
 
 
 census90_bgp_cw <- census90_bgp_cw %>%
-  select(bgp1990gj:bg2010ge, wt_hh) #%>%
-  mutate(state_co_fips = str_sub(bgp1990gj, end = 8),
-         county_sub_fips = str_sub(bgp1990gj, start = 9, end = 13),
-         place_fips = str_sub(bgp1990gj, start = 14, end = 18),
-         tract_fips = str_sub(bgp1990gj, start = 19, end = 24),
-         bg_fips = str_sub(bgp1990gj, start = -1),
-         bgp1990_GEOID = str_c(state_co_fips, tract_fips, bg_fips, sep = "")
-         )
+  select(bgp1990gj:bg2010ge, wt_hh)
 
 weighted_estimates <- census90inc_red %>%
   left_join(., census90_bgp_cw, by = c("GISJOIN" = "bgp1990gj")) %>%
@@ -719,95 +712,55 @@ census00inc <- read_csv(paste0(wd,
                                censusinc_path,
                                inc00_path))
 
-renamed_90_inc_vars <- c("GISJOIN", 
+renamed_00_inc_vars <- c("GISJOIN", 
                          "YEAR",
-                         "INC_LT5K",
-                         "INC_5KTO9999",
-                         "INC_10KTO12499",
-                         "INC_12500TO14999",
-                         "INC_15KTO17499",
-                         "INC_17500TO19999",
-                         "INC_20KTO22499",
-                         "INC_22500TO24999",
-                         "INC_25KTO274999",
-                         "INC_27500TO29999",
-                         "INC_30KTO32499",
-                         "INC_32500TO34999",
-                         "INC_35KTO37499",
-                         "INC_37500TO39999",
-                         "INC_40KTO42499",
-                         "INC_42500TO44999",
-                         "INC_45KTO47499",
-                         "INC_47500TO49999",
-                         "INC_50KTO54999",
-                         "INC_55KTO59999",
+                         "INC_LT10K",
+                         "INC_10KTO14999",
+                         "INC_15KTO19999",
+                         "INC_20KTO24999",
+                         "INC_25KTO29999",
+                         "INC_30KTO34999",
+                         "INC_35KTO39999",
+                         "INC_40KTO44999",
+                         "INC_45KTO49999",
+                         "INC_50KTO59999",
                          "INC_60KTO74999",
                          "INC_75KTO99999",
                          "INC_100KTO124999",
                          "INC_125KTO149999",
-                         "INC_150KPLUS"
+                         "INC_150KTO199999",
+                         "INC_200KPLUS"
 )
 
-census90inc_red <- census90inc %>% 
+census00inc_red <- census00inc %>% 
   slice(-1) %>%
-  select(GISJOIN:YEAR, E4T001:E4T025) %>%
-  rename_at(vars(GISJOIN:E4T025), ~ renamed_90_inc_vars) %>%
-  mutate(across(INC_LT5K:INC_150KPLUS, as.numeric)) %>%
-  rename(wave = "YEAR") %>%
-  mutate(INC_LT10K = INC_LT5K + INC_5KTO9999,
-         INC_10KTO14999 = INC_10KTO12499 + INC_12500TO14999,
-         INC_15KTO19999 = INC_15KTO17499 + INC_17500TO19999,
-         INC_20KTO24999 = INC_20KTO22499 + INC_22500TO24999,
-         INC_25KTO29999 = INC_25KTO274999 + INC_27500TO29999, 
-         INC_30KTO34999 = INC_30KTO32499 + INC_32500TO34999,
-         INC_35KTO39999 = INC_35KTO37499 + INC_37500TO39999, 
-         INC_40KTO44999 = INC_40KTO42499 + INC_42500TO44999,
-         INC_45KTO49999 = INC_45KTO47499 + INC_47500TO49999,
-         INC_50KTO59999 = INC_50KTO54999 + INC_55KTO59999
-  ) %>%
-  select(GISJOIN:wave, INC_60KTO74999:INC_50KTO59999) %>%
-  relocate(GISJOIN, 
-           wave, 
-           INC_LT10K,
-           INC_10KTO14999,
-           INC_15KTO19999,
-           INC_20KTO24999,
-           INC_25KTO29999, 
-           INC_30KTO34999,
-           INC_35KTO39999, 
-           INC_40KTO44999,
-           INC_45KTO49999,
-           INC_50KTO59999)
-rm(census90inc)
+  select(GISJOIN:YEAR, HF5001:HF5016) %>%
+  rename_at(vars(GISJOIN:HF5016), ~ renamed_00_inc_vars) %>%
+  mutate(across(INC_LT10K:INC_200KPLUS, as.numeric)) %>%
+  rename(wave = "YEAR")
+rm(census00inc)
 
 ## APPORTIONMENT
-census90_bgp_cw <- read_csv(paste0(wd, 
+census00_bgp_cw <- read_csv(paste0(wd, 
                                    cw_path,
-                                   cw_1990_bgp_path))
+                                   cw_2000_bgp_path))
 
 
-census90_bgp_cw <- census90_bgp_cw %>%
-  select(bgp1990gj:bg2010ge, wt_hh) #%>%
-mutate(state_co_fips = str_sub(bgp1990gj, end = 8),
-       county_sub_fips = str_sub(bgp1990gj, start = 9, end = 13),
-       place_fips = str_sub(bgp1990gj, start = 14, end = 18),
-       tract_fips = str_sub(bgp1990gj, start = 19, end = 24),
-       bg_fips = str_sub(bgp1990gj, start = -1),
-       bgp1990_GEOID = str_c(state_co_fips, tract_fips, bg_fips, sep = "")
-)
+census00_bgp_cw <- census00_bgp_cw %>%
+  select(bgp2000gj:bg2010ge, wt_hh)
 
-weighted_estimates <- census90inc_red %>%
-  left_join(., census90_bgp_cw, by = c("GISJOIN" = "bgp1990gj")) %>%
+weighted_estimates <- census00inc_red %>%
+  left_join(., census00_bgp_cw, by = c("GISJOIN" = "bgp2000gj")) %>%
   mutate(across(where(is.numeric) & !c(wt_hh), ~. * wt_hh)) %>%
   select(-wt_hh, -GISJOIN) 
-rm(census90inc_red, census90_bgp_cw)
+rm(census00inc_red, census00_bgp_cw)
 
-income_90_on_10_cbg <- weighted_estimates %>% 
+income_00_on_10_cbg <- weighted_estimates %>% 
   group_by(bg2010ge) %>%
   summarize(across(where(is.numeric), ~sum(.x))) %>%
-  mutate(wave = "1990") %>%
+  mutate(wave = "2000") %>%
   rename(GEOID = "bg2010ge") %>%
   relocate(GEOID, wave)
 
-saveRDS(income_90_on_10_cbg, "income_90_on_10_cbg.rds")
-rm(weighted_estimates, income_90_on_10_cbg)
+saveRDS(income_00_on_10_cbg, "income_00_on_10_cbg.rds")
+rm(weighted_estimates, income_00_on_10_cbg)
