@@ -26,11 +26,9 @@ packages <- c(
   "modelsummary",
   "stargazer",
   "panelr",
-  "tmap",
   "tigris",
   "censusapi", 
   "tidycensus",
-  "corrplot",
   "RColorBrewer",
   "hrbrthemes",
   "viridis", 
@@ -68,8 +66,7 @@ cbg10 <- st_read(paste0(shp_repo,
 * EVI scores come from Landsat satellite image mosaics from 1990, 2000, and 2010, 2019.
 * Decennial U.S. Census data for each decade and 2019 ACS. 
   * Race
-  * Population density
-  * Housing units
+  * Housing density
   * Housing tenure - % renter-occupied housing units
   * Housing occupancy - % vacant housing units
 * Other Environmental Data:
@@ -83,9 +80,17 @@ evi_all_decades_cbg <- readRDS(paste0(wd,
                                       green_space_path,
                                       "evi_all_years_on_2010cbg_LONG.rds"))
 
-race_all_decades_cbg <- readRDS(paste0(wd, 
-                         census_data_path, 
-                         "/all_years_race_on_cbg10_LONG.rds"))
+race_all_decades_cbg <- readRDS(paste0(wd,
+                                       census_data_path, 
+                                       "/all_years_race_on_cbg10_LONG.rds"))
+
+housing_all_decades_cbg <- readRDS(paste0(wd, 
+                                          census_data_path, 
+                                          "/all_years_housing_on_cbg10_LONG.rds"))
+
+income_all_decades_cbg <- readRDS(paste0(wd, 
+                                          census_data_path, 
+                                          "/all_years_income_on_cbg10_LONG.rds"))
 
 counties <- get_decennial(geography = "county", 
                           variables = "P001001", 
@@ -153,14 +158,34 @@ race_pct_all_decades_cbg <- race_all_decades_cbg %>%
   select(GEOID, wave, TOT_POP, WHITE_NH_PCT:HISPANIC_PCT) %>%
   mutate(wave = as.numeric(wave))
 
+housing_pct_all_decades_cbg <- housing_all_decades_cbg %>%
+  mutate_at(vars(OCCUPIED_UNITS, VACANT_UNITS),  funs("PCT" = (./H_UNITS) * 100)) %>%
+  mutate_at(vars(OWNER_OCC:RENTER_OCC), funs("PCT" = (./OCCUPIED_UNITS) * 100)) %>%
+  select(GEOID:H_UNITS, OCCUPIED_UNITS_PCT:RENTER_OCC_PCT) %>%
+  mutate(wave = as.numeric(wave))
+
+income_pct_all_decades_cbg <- income_all_decades_cbg %>% 
+  mutate_at(vars(starts_with("INC_")), funs("PCT" = (./HH) * 100)) %>%
+  mutate(LOW_INC_PCT = rowSums(across(INC_LT10K_PCT:INC_20KTO24999_PCT)),
+         MID_INC_PCT = rowSums(across(INC_25KTO29999_PCT:INC_75KTO99999_PCT)),
+         AFF_INC_PCT = rowSums(across(INC_100KTO124999_PCT:INC_150KPLUS_PCT))
+         ) %>% 
+  select(GEOID:wave, LOW_INC_PCT:AFF_INC_PCT) %>% 
+  mutate(wave = as.numeric(wave))
+
 full_cbg_data <- evi_all_decades_cbg %>% 
   mutate(wave = replace(wave, wave == 2020, 2019)) %>%
   left_join(., cbg_all_geoids, by = "GISJOIN") %>%
   left_join(., race_pct_all_decades_cbg, by = c("GEOID10" = "GEOID",
                                                 "wave" = "wave")) %>% 
+  left_join(., housing_pct_all_decades_cbg, by = c("GEOID10" = "GEOID",
+                                                "wave" = "wave")) %>% 
+  left_join(., income_pct_all_decades_cbg, by = c("GEOID10" = "GEOID",
+                                                "wave" = "wave")) %>%   
   relocate(evi, .before = TOT_POP) %>%
   left_join(., cbg_area, by = "GEOID10") %>%
-  mutate(POP_DENS = TOT_POP/area)
+  mutate(POP_DENS = TOT_POP/area,
+         H_DENS = H_UNITS/area)
 
 ```
 
