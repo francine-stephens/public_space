@@ -19,7 +19,8 @@ packages <- c(
   "readr",
   "tidyverse",
   "sf",
-  "ggplot2",
+  "ggplot2", 
+  "ggbeeswarm",
   "scales",
   "units",
   "ggcorrplot",
@@ -32,6 +33,7 @@ packages <- c(
   "RColorBrewer",
   "hrbrthemes",
   "viridis", 
+  "wesanderson",
   "leaflet"
 )
 lapply(packages, library, character.only = T)
@@ -106,6 +108,8 @@ top100_cbsa <- read_csv(paste0(shp_repo,
                                "/top100_cbsa_2010bounds.csv"))
 top100_places <- read_csv(paste0(shp_repo, 
                                  "/top100_places_2010bounds.csv"))
+state_id_regions <- read_csv(paste0(shp_repo, 
+                                    "/state_identifiers_census_regions.csv"))
 
 ```
 
@@ -185,7 +189,8 @@ full_cbg_data <- evi_all_decades_cbg %>%
   relocate(evi, .before = TOT_POP) %>%
   left_join(., cbg_area, by = "GEOID10") %>%
   mutate(POP_DENS = TOT_POP/area,
-         H_DENS = H_UNITS/area)
+         H_DENS = H_UNITS/area) %>%
+  filter(evi >= 0)
 
 ```
 
@@ -200,8 +205,11 @@ Greenness (EVI/NDVI) may take on different meanings/levels in metropolitan and m
 place_evi_by_year <- full_cbg_data %>%
   ungroup() %>%
   group_by(PLACEFP_DERIVED, PLACE_DERIVED_NM, wave, in_metro) %>% 
-  filter(!is.na(in_metro)) %>%
-  summarize(evi_mean = mean(evi, na.rm=T),
+  filter(!is.na(in_metro),
+         evi >=0) %>%
+  summarize(evi_mean = mean(evi, na.rm = T),
+            evi_min = min(evi, na.rm = T),
+            evi_max = max(evi, na.rm = T),
             n = n())
 
 metro_micro_place_evi_comparison <- place_evi_by_year %>%
@@ -354,6 +362,231 @@ knitr::kable(full_cbg_data %>%
   caption = "Summerfield, MD Census Block Group EVI and Demographics",
   col.names = c("CBG", "Year", "EVI", "% Black", "People/Sq. Mi.")
 )
+
+```
+
+
+## Within Place Comparisons
+
+```{r maps spatial visuals}
+place_evi_comp <- place_evi_by_year %>% 
+  mutate(evi_range = evi_max - evi_min) 
+
+place_evi_comp %>%
+  ungroup() %>% 
+  filter(PLACEFP_DERIVED %in% top100_places$PLACEFP) %>%
+  arrange(evi_range) %>%
+  slice(1:50)
+
+```
+Pittsburgh,
+Urban Honolulu,
+NYC,
+Cincinnati,
+Philadelphia,
+Memphis,
+Boston, 
+Nashville,
+St. Louis, 
+Corpus Christi 1990,
+N. Las Vegas 2000, 2010, 2019,
+Fremont,
+```{r northeast connected dotplots}
+## BEESWARM PLOTS OF WITHIN PLACE DISTRIBUTIONS 
+top100_places_within_time_comp <- full_cbg_data %>% 
+  ungroup() %>% 
+  filter(PLACEFP_DERIVED %in% top100_places$PLACEFP) %>% 
+  mutate(state_fips = str_sub(PLACEFP_DERIVED, end = 2)) %>% 
+  left_join(., state_id_regions, by = "state_fips") %>%
+  mutate(PLACE_NM = str_remove(PLACE_DERIVED_NM, " city"),
+         PLACE_ST_NM = str_c(PLACE_NM, state_ab, sep = ", "),
+         year = as.character(wave),
+         year_abb = str_sub(year, start = 3),
+         year_abb = paste0("'", year_abb)
+         )
+
+# NORTHEAST
+top100_places_within_time_comp %>% 
+  filter(region == "Northeast") %>% 
+  ggplot(., aes(x = year, y = evi, color = year)) + 
+  geom_quasirandom() +
+  theme_minimal() +
+  scale_color_manual(values = wes_palette("Cavalcanti1")) +
+  theme_minimal() + 
+  labs(
+    title = "Distribution of Greenspace in Northeastern Cities",
+    x = "Year",
+    y = "EVI",
+    caption = "Note: Each point represents a block group in the city") + 
+  theme(legend.position = "none") +
+  facet_wrap(~ PLACE_ST_NM) 
+  
+
+
+```
+
+```{r midatlantic}
+# MidAtlantic
+top100_places_within_time_comp %>% 
+  filter(region == "Mid-Atlantic") %>% 
+  ggplot(., aes(x = year, y = evi, color = year)) + 
+  geom_quasirandom() +
+  theme_minimal() +
+  scale_color_manual(values = wes_palette("Cavalcanti1")) +
+  theme_minimal() + 
+  labs(
+    title = "Distribution of Greenspace in Mid-Atlantic Cities",
+    x = "Year",
+    y = "EVI",
+    caption = "Note: Each point represents a block group in the city") + 
+  theme(legend.position = "none") +
+  facet_wrap(~ PLACE_ST_NM)
+
+```
+
+```{r midwest}
+# MIDWEST
+top100_places_within_time_comp %>% 
+  filter(region == "Midwest") %>% 
+  mutate(PLACE_ST_NM = gsub("\\s*\\([^\\)]+\\)", "", PLACE_ST_NM)) %>%
+  ggplot(., aes(x = year, y = evi, color = year)) + 
+  geom_quasirandom() +
+  theme_minimal() +
+  scale_color_manual(values = wes_palette("Cavalcanti1")) +
+  theme_minimal() + 
+  labs(
+    title = "Distribution of Greenspace in Midwestern Cities",
+    x = "Year",
+    y = "EVI",
+    caption = "Note: Each point represents a block group in the city") + 
+  theme(legend.position = "none") +
+  facet_wrap(~ PLACE_ST_NM)
+
+```
+
+
+```{r south}
+# SOUTH
+top100_places_within_time_comp %>% 
+  filter(region == "South") %>% 
+  mutate(PLACE_ST_NM = str_remove(PLACE_ST_NM, " urban county"), 
+         PLACE_ST_NM = str_remove(PLACE_ST_NM, " government"),
+         PLACE_ST_NM = str_remove(PLACE_ST_NM, " metropolitan"),
+         PLACE_ST_NM = str_remove(PLACE_ST_NM, " metro"),
+         PLACE_ST_NM = gsub("\\s*\\([^\\)]+\\)", "", PLACE_ST_NM)
+         ) %>%
+  ggplot(., aes(x = year, y = evi, color = year)) + 
+  geom_quasirandom() +
+  theme_minimal() +
+  scale_color_manual(values = wes_palette("Cavalcanti1")) +
+  theme_minimal() + 
+  labs(
+    title = "Distribution of Greenspace in Southern Cities",
+    x = "Year",
+    y = "EVI",
+    caption = "Note: Each point represents a block group in the city") + 
+  theme(legend.position = "none") +
+  facet_wrap(~ PLACE_ST_NM)
+
+```
+
+```{r Southwest}
+# SOUTHWEST
+top100_places_within_time_comp %>% 
+  filter(region == "Southwest") %>% 
+  ggplot(., aes(x = year, y = evi, color = year)) + 
+  geom_quasirandom() +
+  theme_minimal() +
+  scale_color_manual(values = wes_palette("Cavalcanti1")) +
+  theme_minimal() + 
+  labs(
+    title = "Distribution of Greenspace in Southwestern Cities",
+    x = "Year",
+    y = "EVI",
+    caption = "Note: Each point represents a block group in the city") + 
+  theme(legend.position = "none") +
+  facet_wrap(~ PLACE_ST_NM)
+
+```
+
+
+```{r mountainwest}
+# MOUNTAINWEST
+top100_places_within_time_comp %>% 
+  filter(region == "West") %>% 
+  ggplot(., aes(x = year, y = evi, color = year)) + 
+  geom_quasirandom() +
+  theme_minimal() +
+  scale_color_manual(values = wes_palette("Cavalcanti1")) +
+  theme_minimal() + 
+  labs(
+    title = "Distribution of Greenspace in Mountain-West Cities",
+    x = "Year",
+    y = "EVI",
+    caption = "Note: Each point represents a block group in the city") + 
+  theme(legend.position = "none") +
+  facet_wrap(~ PLACE_ST_NM)
+
+```
+
+
+```{r pacific west}
+# PACIFIC WEST
+top100_places_within_time_comp %>% 
+  filter(region == "Pacific") %>% 
+  mutate(PLACE_ST_NM = str_remove(PLACE_ST_NM, " municipality")) %>%
+  ggplot(., aes(x = year, y = evi, color = year)) + 
+  geom_quasirandom() +
+  theme_minimal() +
+  scale_color_manual(values = wes_palette("Cavalcanti1")) +
+  theme_minimal() + 
+  labs(
+    title = "Distribution of Greenspace in Pacific-West Cities",
+    x = "Year",
+    y = "EVI",
+    caption = "Note: Each point represents a block group in the city") + 
+  theme(legend.position = "none") +
+  facet_wrap(~ PLACE_ST_NM)
+
+```
+
+
+```{r test visuals}
+
+
+# ss_demog_pal <- colorNumeric(
+#   palette = "Greens",
+#   domain = nc_evi$evi
+# )
+#  
+# leaflet() %>% 
+#    addProviderTiles(providers$CartoDB.Positron) %>% 
+#   addPolylines(
+#     data = ss_lines_with_service_area_demogs %>% st_transform(., crs = wgs),
+#     color = ~ss_demog_pal(tpop),
+#     #color = "white",
+#     opacity = 1,
+#     weight = 5,
+#     label = ~paste0(name, " - ",
+#                     format(tpop, digits = 1, big.mark = ","), 
+#                     " residents"
+#     ),
+#     highlightOptions = highlightOptions(
+#       weight = 2,
+#       opacity = 1)
+#   ) %>% 
+#   addLegend(
+#     position = "bottomleft",
+#     data = ss_lines_with_service_area_demogs, 
+#     pal = ss_demog_pal,
+#     values = ~tpop,
+#     title = "Residents Served by Slow Streets"
+#   )
+# 
+# 
+#   ggplot() + 
+#     geom_sf(aes(fill = evi)) #+ 
+#     geom_polygon(data = )
 
 ```
 
