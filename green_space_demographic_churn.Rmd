@@ -82,6 +82,10 @@ evi_all_decades_cbg <- readRDS(paste0(wd,
                                       green_space_path,
                                       "evi_all_years_on_2010cbg_LONG.rds"))
 
+evi_area_decades_cbg <- readRDS(paste0(wd, 
+                                      green_space_path,
+                                      "evi_area_all_years_on_2010cbg_LONG.rds"))
+
 race_all_decades_cbg <- readRDS(paste0(wd,
                                        census_data_path, 
                                        "/all_years_race_on_cbg10_LONG.rds"))
@@ -369,28 +373,17 @@ knitr::kable(full_cbg_data %>%
 ## Within Place Comparisons
 
 ```{r maps spatial visuals}
-place_evi_comp <- place_evi_by_year %>% 
-  mutate(evi_range = evi_max - evi_min) 
-
-place_evi_comp %>%
-  ungroup() %>% 
-  filter(PLACEFP_DERIVED %in% top100_places$PLACEFP) %>%
-  arrange(evi_range) %>%
-  slice(1:50)
+# place_evi_comp <- place_evi_by_year %>% 
+#   mutate(evi_range = evi_max - evi_min) 
+# 
+# place_evi_comp %>%
+#   ungroup() %>% 
+#   filter(PLACEFP_DERIVED %in% top100_places$PLACEFP) %>%
+#   arrange(evi_range) %>%
+#   slice(1:50)
 
 ```
-Pittsburgh,
-Urban Honolulu,
-NYC,
-Cincinnati,
-Philadelphia,
-Memphis,
-Boston, 
-Nashville,
-St. Louis, 
-Corpus Christi 1990,
-N. Las Vegas 2000, 2010, 2019,
-Fremont,
+
 ```{r northeast connected dotplots}
 ## BEESWARM PLOTS OF WITHIN PLACE DISTRIBUTIONS 
 top100_places_within_time_comp <- full_cbg_data %>% 
@@ -420,8 +413,6 @@ top100_places_within_time_comp %>%
     caption = "Note: Each point represents a block group in the city") + 
   theme(legend.position = "none") +
   facet_wrap(~ PLACE_ST_NM) 
-  
-
 
 ```
 
@@ -550,6 +541,167 @@ top100_places_within_time_comp %>%
 
 ```
 
+```{r greenspace evi area}
+## PREP GREENSPACE DATA
+evi_area_full_cbg <- evi_area_decades_cbg %>% 
+  rename(green_area = "area") %>%
+  left_join(., cbg_all_geoids, by = "GISJOIN") %>%
+  select(GISJOIN:CBSA_NM, top100_place, in_metro) %>%
+  left_join(., cbg_area, by = "GEOID10") %>%
+  mutate(perc_green = green_area/area, 
+         perc_green = if_else(perc_green > 1, 
+                              1,
+                              perc_green)
+  ) %>%
+  left_join(., full_cbg_data, by = c("GISJOIN", "wave"))
+
+top100_places_area_within_time_comp <- evi_area_full_cbg %>%
+  filter(PLACEFP_DERIVED.x %in% top100_places$PLACEFP) %>% 
+  mutate(state_fips = str_sub(PLACEFP_DERIVED.x, end = 2)) %>% 
+  left_join(., state_id_regions, by = "state_fips") %>%
+  mutate(PLACE_NM = str_remove(PLACE_DERIVED_NM.x, " city"),
+         PLACE_ST_NM = str_c(PLACE_NM.x, state_ab, sep = ", "),
+         year = as.character(wave),
+         majority_minority = if_else(WHITE_NH_PCT <50,
+                                     "Majority Nonwhite",
+                                     "Majority white")
+  )
+
+```
+
+
+```{r ne area boxplot}
+# NORTHEAST
+top100_places_area_within_time_comp %>% 
+  filter(region == "Northeast",
+         !is.na(majority_minority)) %>% 
+ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) + 
+    geom_boxplot() +
+    scale_fill_manual(values = wes_palette("Chevalier1")) + 
+  guides(fill=guide_legend(title="Racial Composition")) +
+  theme_minimal() + 
+  labs(
+    title = "Distribution of Greenspace Area in Northeastern Cities",
+    x = "Year",
+    y = "% Green Landcover") +
+    facet_wrap(~PLACE_ST_NM)
+
+```
+
+```{r midatl area box}
+# MIDATLANTIC
+top100_places_area_within_time_comp %>% 
+  filter(region == "Mid-Atlantic",
+         !is.na(majority_minority)) %>% 
+ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) + 
+    geom_boxplot() +
+    scale_fill_manual(values = wes_palette("Chevalier1")) + 
+  guides(fill=guide_legend(title="Racial Composition")) +
+  theme_minimal() + 
+  labs(
+    title = "Distribution of Greenspace Area in Mid-Atlantic Cities",
+    x = "Year",
+    y = "% Green Landcover") +
+    facet_wrap(~PLACE_ST_NM)
+
+```
+
+```{r midwest area box}
+# MIDWEST
+top100_places_area_within_time_comp %>% 
+  filter(region == "Midwest",
+         !is.na(majority_minority)) %>% 
+ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) + 
+    geom_boxplot() +
+    scale_fill_manual(values = wes_palette("Chevalier1")) + 
+  guides(fill=guide_legend(title="Racial Composition")) +
+  theme_minimal() + 
+  labs(
+    title = "Distribution of Greenspace Area in Midwestern Cities",
+    x = "Year",
+    y = "% Green Landcover") +
+    facet_wrap(~PLACE_ST_NM)
+
+```
+
+```{r south area boxes}
+# SOUTH
+top100_places_area_within_time_comp %>% 
+  filter(region == "South",
+         !is.na(majority_minority)) %>% 
+  mutate(PLACE_ST_NM = str_remove(PLACE_ST_NM, " urban county"), 
+         PLACE_ST_NM = str_remove(PLACE_ST_NM, " government"),
+         PLACE_ST_NM = str_remove(PLACE_ST_NM, " metropolitan"),
+         PLACE_ST_NM = str_remove(PLACE_ST_NM, " metro"),
+         PLACE_ST_NM = gsub("\\s*\\([^\\)]+\\)", "", PLACE_ST_NM)
+         ) %>%
+ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) + 
+    geom_boxplot() +
+    scale_fill_manual(values = wes_palette("Chevalier1")) + 
+  guides(fill=guide_legend(title="Racial Composition")) +
+  theme_minimal() + 
+  labs(
+    title = "Distribution of Greenspace Area in Southern Cities",
+    x = "Year",
+    y = "% Green Landcover") +
+    facet_wrap(~PLACE_ST_NM)
+
+```
+
+```{r sw area box}
+# SOUTHWESTERN
+top100_places_area_within_time_comp %>% 
+  filter(region == "Southwest",
+         !is.na(majority_minority)) %>% 
+ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) + 
+    geom_boxplot() +
+    scale_fill_manual(values = wes_palette("Chevalier1")) + 
+  guides(fill=guide_legend(title="Racial Composition")) +
+  theme_minimal() + 
+  labs(
+    title = "Distribution of Greenspace Area in Southwestern Cities",
+    x = "Year",
+    y = "% Green Landcover") +
+    facet_wrap(~PLACE_ST_NM)
+
+```
+
+```{r mw area box}
+# MOUNTAIN WEST
+top100_places_area_within_time_comp %>% 
+  filter(region == "West",
+         !is.na(majority_minority)) %>% 
+ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) + 
+    geom_boxplot() +
+    scale_fill_manual(values = wes_palette("Chevalier1")) + 
+  guides(fill=guide_legend(title="Racial Composition")) +
+  theme_minimal() + 
+  labs(
+    title = "Distribution of Greenspace Area in Mountain-west Cities",
+    x = "Year",
+    y = "% Green Landcover") +
+    facet_wrap(~PLACE_ST_NM)
+
+```
+
+
+```{r pacific area box}
+# PACIFIC WEST
+top100_places_area_within_time_comp %>% 
+  filter(region == "Pacific",
+         !is.na(majority_minority)) %>% 
+ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) + 
+    geom_boxplot() +
+    scale_fill_manual(values = wes_palette("Chevalier1")) + 
+  guides(fill=guide_legend(title="Racial Composition")) +
+  theme_minimal() + 
+  labs(
+    title = "Distribution of Greenspace Area in Pacific-west Cities",
+    x = "Year",
+    y = "% Green Landcover") +
+    facet_wrap(~PLACE_ST_NM)
+
+```
 
 ```{r test visuals}
 
