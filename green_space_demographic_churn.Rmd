@@ -525,7 +525,8 @@ top100_places_within_time_comp %>%
 # PACIFIC WEST
 top100_places_within_time_comp %>% 
   filter(region == "Pacific") %>% 
-  mutate(PLACE_ST_NM = str_remove(PLACE_ST_NM, " municipality")) %>%
+  mutate(PLACE_ST_NM = str_remove(PLACE_ST_NM, " municipality"),
+         PLACE_ST_NM = str_remove(PLACE_ST_NM, " Urban")) %>%
   ggplot(., aes(x = year, y = evi, color = year)) + 
   geom_quasirandom() +
   theme_minimal() +
@@ -598,6 +599,7 @@ ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) +
     scale_fill_manual(values = wes_palette("Chevalier1")) + 
   guides(fill=guide_legend(title="Racial Composition")) +
   theme_minimal() + 
+  theme(legend.position = "none") +
   labs(
     title = "Distribution of Greenspace Area in Mid-Atlantic Cities",
     x = "Year",
@@ -611,11 +613,13 @@ ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) +
 top100_places_area_within_time_comp %>% 
   filter(region == "Midwest",
          !is.na(majority_minority)) %>% 
+  mutate(PLACE_ST_NM = gsub("\\s*\\([^\\)]+\\)", "", PLACE_ST_NM)) %>%
 ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) + 
     geom_boxplot() +
     scale_fill_manual(values = wes_palette("Chevalier1")) + 
   guides(fill=guide_legend(title="Racial Composition")) +
   theme_minimal() + 
+  theme(legend.position = "none") +
   labs(
     title = "Distribution of Greenspace Area in Midwestern Cities",
     x = "Year",
@@ -633,6 +637,7 @@ top100_places_area_within_time_comp %>%
          PLACE_ST_NM = str_remove(PLACE_ST_NM, " government"),
          PLACE_ST_NM = str_remove(PLACE_ST_NM, " metropolitan"),
          PLACE_ST_NM = str_remove(PLACE_ST_NM, " metro"),
+         PLACE_ST_NM = str_remove(PLACE_ST_NM, " County"),
          PLACE_ST_NM = gsub("\\s*\\([^\\)]+\\)", "", PLACE_ST_NM)
          ) %>%
 ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) + 
@@ -640,6 +645,7 @@ ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) +
     scale_fill_manual(values = wes_palette("Chevalier1")) + 
   guides(fill=guide_legend(title="Racial Composition")) +
   theme_minimal() + 
+  theme(legend.position = "none") + 
   labs(
     title = "Distribution of Greenspace Area in Southern Cities",
     x = "Year",
@@ -658,6 +664,7 @@ ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) +
     scale_fill_manual(values = wes_palette("Chevalier1")) + 
   guides(fill=guide_legend(title="Racial Composition")) +
   theme_minimal() + 
+  theme(legend.position = "none") + 
   labs(
     title = "Distribution of Greenspace Area in Southwestern Cities",
     x = "Year",
@@ -676,6 +683,7 @@ ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) +
     scale_fill_manual(values = wes_palette("Chevalier1")) + 
   guides(fill=guide_legend(title="Racial Composition")) +
   theme_minimal() + 
+  theme(legend.position = "none") + 
   labs(
     title = "Distribution of Greenspace Area in Mountain-west Cities",
     x = "Year",
@@ -690,11 +698,14 @@ ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) +
 top100_places_area_within_time_comp %>% 
   filter(region == "Pacific",
          !is.na(majority_minority)) %>% 
+  mutate(PLACE_ST_NM = str_remove(PLACE_ST_NM, " municipality"),
+         PLACE_ST_NM = str_remove(PLACE_ST_NM, "Urban ")) %>%
 ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) + 
     geom_boxplot() +
     scale_fill_manual(values = wes_palette("Chevalier1")) + 
   guides(fill=guide_legend(title="Racial Composition")) +
   theme_minimal() + 
+  theme(legend.position = "none") + 
   labs(
     title = "Distribution of Greenspace Area in Pacific-west Cities",
     x = "Year",
