@@ -37,16 +37,16 @@ select_mutate <- function(x) {
 # PREPARE FULL DATASET----------------------------------------------------------
 imp_area_90 <- Imperv_1990_by_cbg10_AREA %>%
   select_mutate(.) %>%
-  mutate(year = "1990")
+  mutate(year = 1990)
 imp_area_00 <- Imperv_2000_by_cbg10_AREA %>%
   select_mutate(.) %>%
-  mutate(year = "2000")
+  mutate(year = 2000)
 imp_area_10 <- Imperv_2010_by_cbg10_AREA %>%
   select_mutate(.) %>%
-  mutate(year = "2010")
-imp_area_19 <- imp_area_10 <- Imperv_2019_by_cbg10_AREA %>%
+  mutate(year = 2010)
+imp_area_19 <-  Imperv_2019_by_cbg10_AREA %>%
   select_mutate(.) %>%
-  mutate(year = "2020")
+  mutate(year = 2020)
 
 imp_area_all_years <- bind_rows(imp_area_90, 
                                 imp_area_00, 

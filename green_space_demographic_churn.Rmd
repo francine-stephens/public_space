@@ -42,6 +42,7 @@ lapply(packages, library, character.only = T)
 setwd("~/Projects/public_space")
 wd <- getwd()
 green_space_path <- "/green_space/gee/"
+imperv_space_path <- "/impervious_space/"
 census_data_path <- "/census"
 shp_repo <- "C:/Users/Franc/Documents/Shapefile_Repository"
 shp2010_path <- "/2010USA_CensusGeog_Shp"
@@ -85,6 +86,10 @@ evi_all_decades_cbg <- readRDS(paste0(wd,
 evi_area_decades_cbg <- readRDS(paste0(wd, 
                                       green_space_path,
                                       "evi_area_all_years_on_2010cbg_LONG.rds"))
+
+imperv_area_decades_cbg <- readRDS(paste0(wd, 
+                                          imperv_space_path,
+                                          "impervious_area_all_years_on_2010cbg_LONG.rds"))
 
 race_all_decades_cbg <- readRDS(paste0(wd,
                                        census_data_path, 
@@ -160,7 +165,7 @@ cbg_area <- cbg10 %>%
   st_set_geometry(NULL)
 
 
-## MERGE ALL DEMOGRAPHIC & GREEN SPACE DATA
+## MERGE ALL DEMOGRAPHIC & ENVIRONMENTAL DATA
 race_pct_all_decades_cbg <- race_all_decades_cbg %>% 
   mutate_at(vars(WHITE_NH:HISPANIC), funs("PCT" = (./TOT_POP) * 100)) %>%
   select(GEOID, wave, TOT_POP, WHITE_NH_PCT:HISPANIC_PCT) %>%
@@ -181,8 +186,16 @@ income_pct_all_decades_cbg <- income_all_decades_cbg %>%
   select(GEOID:wave, LOW_INC_PCT:AFF_INC_PCT) %>% 
   mutate(wave = as.numeric(wave))
 
+evi_area_clean <- evi_area_decades_cbg %>% 
+  rename(green_area = "area")
+
+imp_area_clean <- imperv_area_decades_cbg %>%
+  rename(imperv_area = "area",
+         wave = "year") %>%
+  mutate(wave = as.numeric(wave))
+
+
 full_cbg_data <- evi_all_decades_cbg %>% 
-  mutate(wave = replace(wave, wave == 2020, 2019)) %>%
   left_join(., cbg_all_geoids, by = "GISJOIN") %>%
   left_join(., race_pct_all_decades_cbg, by = c("GEOID10" = "GEOID",
                                                 "wave" = "wave")) %>% 
@@ -194,6 +207,18 @@ full_cbg_data <- evi_all_decades_cbg %>%
   left_join(., cbg_area, by = "GEOID10") %>%
   mutate(POP_DENS = TOT_POP/area,
          H_DENS = H_UNITS/area) %>%
+  left_join(., evi_area_clean, by = c("GISJOIN", "wave")) %>%  
+  mutate(perc_green = green_area/area, 
+         perc_green = if_else(perc_green > 1, 
+                              1,
+                              perc_green)
+  ) %>%
+  left_join(., imp_area_clean, by = c("GISJOIN", "wave")) %>%  
+  mutate(perc_imperv = imperv_area/area, 
+         perc_imperv = if_else(perc_imperv > 1, 
+                              1,
+                              perc_imperv)
+  ) %>%
   filter(evi >= 0)
 
 ```
@@ -416,6 +441,26 @@ top100_places_within_time_comp %>%
 
 ```
 
+```{r imprev space analysis}
+top100_places_within_time_comp %>% 
+  filter(region == "Northeast") %>% 
+  ggplot(., aes(x = year, y = perc_imperv, color = year)) + 
+  geom_quasirandom() +
+  theme_minimal() +
+  scale_color_manual(values = wes_palette("Cavalcanti1")) +
+  theme_minimal() + 
+  labs(
+    title = "Distribution of Greenspace in Northeastern Cities",
+    x = "Year",
+    y = "EVI",
+    caption = "Note: Each point represents a block group in the city") + 
+  theme(legend.position = "none") +
+  facet_wrap(~ PLACE_ST_NM) 
+
+
+```
+
+
 ```{r midatlantic}
 # MidAtlantic
 top100_places_within_time_comp %>% 
@@ -434,6 +479,7 @@ top100_places_within_time_comp %>%
   facet_wrap(~ PLACE_ST_NM)
 
 ```
+
 
 ```{r midwest}
 # MIDWEST
