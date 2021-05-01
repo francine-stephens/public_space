@@ -12,7 +12,7 @@ output:
 ---
 
 ```{r setup, include=F, warning=F, message=F}
-knitr::opts_chunk$set(echo=T)
+knitr::opts_chunk$set(echo = TRUE)
 
 ## LIBRARIES
 packages <- c(
@@ -799,6 +799,26 @@ ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) +
 
 ```
 
+
+## SCATTER PLOTS 
+
+```{r scatter imperv and green area}
+
+full_cbg_data %>%
+ungroup() %>% 
+  filter(PLACEFP_DERIVED %in% top100_places$PLACEFP) %>% 
+  filter(wave != 2020) %>%
+  mutate(state_fips = str_sub(PLACEFP_DERIVED, end = 2)) %>% 
+  left_join(., state_id_regions, by = "state_fips") %>%
+  mutate(PLACE_NM = str_remove(PLACE_DERIVED_NM, " city"),
+         PLACE_ST_NM = str_c(PLACE_NM, state_ab, sep = ", ")
+  ) %>%  
+  filter(region == "Southwest") %>% 
+ggplot(., aes(x=imperv_area, y=green_area)) + 
+  geom_point() + 
+  facet_wrap(~PLACE_ST_NM + wave)
+
+```
 
 ## Multivariate Analysis
 

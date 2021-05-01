@@ -56,3 +56,4 @@ imp_area_all_years <- bind_rows(imp_area_90,
 
 # EXPORTS-----------------------------------------------------------------------
 saveRDS(imp_area_all_years, "impervious_area_all_years_on_2010cbg_LONG.rds")
+
