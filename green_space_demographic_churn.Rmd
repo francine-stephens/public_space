@@ -21,6 +21,7 @@ packages <- c(
   "sf",
   "ggplot2", 
   "ggbeeswarm",
+  "ggstream",
   "scales",
   "units",
   "ggcorrplot",
@@ -318,7 +319,7 @@ average_cbg_composition_by_evi <- full_cbg_data %>%
   pivot_longer(
    cols = ends_with("_PCT"),
    names_to = "race",
-   values_to = "percent",
+   values_to = "percent"
  ) %>%
   mutate(race = str_remove(race, "_PCT"))
 
@@ -820,17 +821,67 @@ full_cbg_data %>%
 ungroup() %>% 
   filter(PLACEFP_DERIVED %in% top100_places$PLACEFP) %>% 
   mutate(state_fips = str_sub(PLACEFP_DERIVED, end = 2)) %>% 
-  left_join(., state_id_regions, by = "state_fips") %>%
+  left_join(., state_id_regions, by = "state_fips") %>% 
   mutate(PLACE_NM = str_remove(PLACE_DERIVED_NM, " city"),
          PLACE_ST_NM = str_c(PLACE_NM, state_ab, sep = ", ")
   ) %>%  
-  filter(PLACE_ST_NM == "Chicago, IL") %>% 
-ggplot(., aes(x= perc_imperv, y= perc_green)) + 
-  geom_point() + 
-  facet_wrap(~PLACE_ST_NM + wave)
+  group_by(PLACE_ST_NM, region, wave) %>%
+  summarize(impervious = sum(imperv_area),
+            green = sum(green_area),
+            area = sum(area)
+            ) %>% 
+  ungroup() %>% 
+  mutate(perc_imperv = (impervious/area) * 100,
+         perc_green = (green/area) * 100) %>%
+  pivot_longer(
+               cols = starts_with("perc_"),
+               names_to = "landcover",
+               values_to = "percent"
+               ) %>%
+  filter(region == "West") %>% 
+  ggplot(aes(wave, percent, fill = landcover)) +
+  geom_area(alpha=0.6 , size=.5, colour="white") +
+  scale_fill_manual(values = wes_palette("Chevalier1")) +
+  theme_minimal() + 
+  facet_wrap(~ PLACE_ST_NM)
+
+
+
 
 ```
 
+```{r map green space per pixel}
+bexar_all_data <- full_cbg_data %>% 
+  ungroup() %>% 
+  #filter(PLACEFP_DERIVED %in% top100_places$PLACEFP) %>% 
+  mutate(state_fips = str_sub(PLACEFP_DERIVED, end = 2)) %>% 
+  left_join(., state_id_regions, by = "state_fips") %>% 
+  mutate(PLACE_NM = str_remove(PLACE_DERIVED_NM, " city"),
+         PLACE_ST_NM = str_c(PLACE_NM, state_ab, sep = ", "),
+         STATECO = str_sub(GEOID10, end = 5)
+  ) %>%
+  filter(STATECO == "48029")
+
+bexar_shp <- cbg10 %>%
+  select(GEOID10, STATEFP10, COUNTYFP10) %>% 
+  right_join(bexar_all_data, by ="GEOID10") 
+
+
+# %>% 
+#     ggplot() + 
+#     geom_sf(aes(fill=perc_green)) + 
+#   facet_wrap(~ wave)
+
+library(tmap)
+
+tm_shape(bexar_shp) +
+  tm_polygons("perc_green", 
+              style="quantile", 
+              title="Bexar County") + 
+      tm_facets(by = "wave")
+
+
+```
 ## Multivariate Analysis
 
 * The goal is to get at changes in evi and race composition within neighborhoods and places, so run time fixed effects models.
