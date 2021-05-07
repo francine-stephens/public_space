@@ -169,13 +169,21 @@ cbg_area <- cbg10 %>%
 race_pct_all_decades_cbg <- race_all_decades_cbg %>% 
   mutate_at(vars(WHITE_NH:HISPANIC), funs("PCT" = (./TOT_POP) * 100)) %>%
   select(GEOID, wave, TOT_POP, WHITE_NH_PCT:HISPANIC_PCT) %>%
-  mutate(wave = as.numeric(wave))
+  mutate(wave = as.numeric(wave),
+         wave = if_else(wave == 2019,
+                        2020,
+                        wave)
+         )
 
 housing_pct_all_decades_cbg <- housing_all_decades_cbg %>%
   mutate_at(vars(OCCUPIED_UNITS, VACANT_UNITS),  funs("PCT" = (./H_UNITS) * 100)) %>%
   mutate_at(vars(OWNER_OCC:RENTER_OCC), funs("PCT" = (./OCCUPIED_UNITS) * 100)) %>%
   select(GEOID:H_UNITS, OCCUPIED_UNITS_PCT:RENTER_OCC_PCT) %>%
-  mutate(wave = as.numeric(wave))
+  mutate(wave = as.numeric(wave),
+         wave = if_else(wave == 2019,
+                        2020,
+                        wave)
+  )
 
 income_pct_all_decades_cbg <- income_all_decades_cbg %>% 
   mutate_at(vars(starts_with("INC_")), funs("PCT" = (./HH) * 100)) %>%
@@ -184,7 +192,11 @@ income_pct_all_decades_cbg <- income_all_decades_cbg %>%
          AFF_INC_PCT = rowSums(across(INC_100KTO124999_PCT:INC_150KPLUS_PCT))
          ) %>% 
   select(GEOID:wave, LOW_INC_PCT:AFF_INC_PCT) %>% 
-  mutate(wave = as.numeric(wave))
+  mutate(wave = as.numeric(wave),
+         wave = if_else(wave == 2019,
+                        2020,
+                        wave)
+         )
 
 evi_area_clean <- evi_area_decades_cbg %>% 
   rename(green_area = "area")
@@ -220,7 +232,7 @@ full_cbg_data <- evi_all_decades_cbg %>%
                               perc_imperv)
   ) %>%
   filter(evi >= 0)
-
+ 
 ```
 
 ## Metro-Micro Area Comparison
@@ -807,14 +819,13 @@ ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) +
 full_cbg_data %>%
 ungroup() %>% 
   filter(PLACEFP_DERIVED %in% top100_places$PLACEFP) %>% 
-  filter(wave != 2020) %>%
   mutate(state_fips = str_sub(PLACEFP_DERIVED, end = 2)) %>% 
   left_join(., state_id_regions, by = "state_fips") %>%
   mutate(PLACE_NM = str_remove(PLACE_DERIVED_NM, " city"),
          PLACE_ST_NM = str_c(PLACE_NM, state_ab, sep = ", ")
   ) %>%  
-  filter(region == "Southwest") %>% 
-ggplot(., aes(x=imperv_area, y=green_area)) + 
+  filter(PLACE_ST_NM == "Chicago, IL") %>% 
+ggplot(., aes(x= perc_imperv, y= perc_green)) + 
   geom_point() + 
   facet_wrap(~PLACE_ST_NM + wave)
 

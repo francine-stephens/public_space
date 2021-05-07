@@ -3,7 +3,7 @@
 # 
 # AUTHOR: FRANCINE STEPHENS
 # DATE CREATED: 3/4/21
-# LAST UPDATED: 3/19/21
+# LAST UPDATED: 5/6/21
 #-------------------------------------
 
 # SET-UP------------------------------------------------------------------------
@@ -54,15 +54,18 @@ EVI_area_00 <- EVI_2000_by_cbg10_AREA %>%
   select(GISJOIN, area_2000 = "sum")
 EVI_area_10 <- EVI_2010_by_cbg10_AREA %>%
   select(GISJOIN, area_2010 = "sum")
+EVI_area_20 <- EVI_2020_by_cbg10_AREA %>%
+  select(GISJOIN, area_2020 = "sum")
 
 EVI_area_all_years <- EVI_area_90 %>%
   left_join(., EVI_area_00, by = "GISJOIN") %>%
-  left_join(., EVI_area_10, by = "GISJOIN") %>%
+  left_join(., EVI_area_10, by = "GISJOIN") %>% 
+  left_join(., EVI_area_20, by = "GISJOIN") %>%
   mutate_at(vars(starts_with("area")), ~./2589988.1103) %>% 
   long_panel(.,
              prefix = "_",
              id = "GISJOIN",
-             periods = c(1990, 2000, 2010),
+             periods = c(1990, 2000, 2010, 2020),
              label_location = "end")
   
   
