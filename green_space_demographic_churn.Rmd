@@ -778,6 +778,41 @@ ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) +
 
 ## Line Graphs
 
+### Impervious space v. green-space
+```{r }
+## Southwest imperv and green-space
+full_cbg_data %>%
+ungroup() %>% 
+  filter(PLACEFP_DERIVED %in% top100_places$PLACEFP) %>% 
+  mutate(state_fips = str_sub(PLACEFP_DERIVED, end = 2)) %>% 
+  left_join(., state_id_regions, by = "state_fips") %>% 
+  mutate(PLACE_NM = str_remove(PLACE_DERIVED_NM, " city"),
+         PLACE_ST_NM = str_c(PLACE_NM, state_ab, sep = ", ")
+  ) %>%  
+  group_by(PLACE_ST_NM, region, wave) %>%
+  summarize(impervious = sum(imperv_area),
+            green = sum(green_area),
+            area = sum(area)
+            ) %>% 
+  ungroup() %>% 
+  mutate(perc_imperv = (impervious/area) * 100,
+         perc_green = (green/area) * 100) %>%
+  pivot_longer(
+               cols = starts_with("perc_"),
+               names_to = "landcover",
+               values_to = "percent"
+               ) %>%
+  filter(region == "Mid-Atlantic") %>% 
+  ggplot(aes(wave, percent, group = landcover)) +
+  geom_line(aes(color=landcover)) + 
+  geom_point(aes(color=landcover)) +
+  scale_color_manual(values = wes_palette("Chevalier1")
+                     ) +
+  theme_minimal() + 
+  facet_wrap(~ PLACE_ST_NM)
+
+```
+
 ### Impervious space by race comp
 ```{r line imperv and green area}
 ## Southwest percent imperv
@@ -813,7 +848,6 @@ ungroup() %>%
                      ) +
   theme_minimal() + 
   facet_wrap(~ PLACE_ST_NM)
-
 
 ```
 
