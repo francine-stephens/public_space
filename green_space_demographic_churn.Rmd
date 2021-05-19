@@ -636,7 +636,7 @@ top100_places_area_within_time_comp <- evi_area_full_cbg %>%
 top100_places_area_within_time_comp %>% 
   filter(region == "Northeast",
          !is.na(majority_minority)) %>% 
-ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) + 
+ggplot(., aes(x=year, y=perc_green.x, fill=majority_minority)) + 
     geom_boxplot() +
     scale_fill_manual(values = wes_palette("Chevalier1")) + 
   guides(fill=guide_legend(title="Racial Composition")) +
@@ -752,7 +752,6 @@ ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) +
 
 ```
 
-
 ```{r pacific area box}
 # PACIFIC WEST
 top100_places_area_within_time_comp %>% 
@@ -774,59 +773,26 @@ ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) +
 
 ```
 
-```{r test visuals}
 
 
-# ss_demog_pal <- colorNumeric(
-#   palette = "Greens",
-#   domain = nc_evi$evi
-# )
-#  
-# leaflet() %>% 
-#    addProviderTiles(providers$CartoDB.Positron) %>% 
-#   addPolylines(
-#     data = ss_lines_with_service_area_demogs %>% st_transform(., crs = wgs),
-#     color = ~ss_demog_pal(tpop),
-#     #color = "white",
-#     opacity = 1,
-#     weight = 5,
-#     label = ~paste0(name, " - ",
-#                     format(tpop, digits = 1, big.mark = ","), 
-#                     " residents"
-#     ),
-#     highlightOptions = highlightOptions(
-#       weight = 2,
-#       opacity = 1)
-#   ) %>% 
-#   addLegend(
-#     position = "bottomleft",
-#     data = ss_lines_with_service_area_demogs, 
-#     pal = ss_demog_pal,
-#     values = ~tpop,
-#     title = "Residents Served by Slow Streets"
-#   )
-# 
-# 
-#   ggplot() + 
-#     geom_sf(aes(fill = evi)) #+ 
-#     geom_polygon(data = )
 
-```
+## Line Graphs
 
-
-## SCATTER PLOTS 
-
-```{r scatter imperv and green area}
-
+### Impervious space by race comp
+```{r line imperv and green area}
+## Southwest percent imperv
 full_cbg_data %>%
 ungroup() %>% 
   filter(PLACEFP_DERIVED %in% top100_places$PLACEFP) %>% 
   mutate(state_fips = str_sub(PLACEFP_DERIVED, end = 2)) %>% 
   left_join(., state_id_regions, by = "state_fips") %>% 
   mutate(PLACE_NM = str_remove(PLACE_DERIVED_NM, " city"),
-         PLACE_ST_NM = str_c(PLACE_NM, state_ab, sep = ", ")
+         PLACE_ST_NM = str_c(PLACE_NM, state_ab, sep = ", "),
+         majority_minority = if_else(WHITE_NH_PCT < 50,
+                                     "Majority Nonwhite",
+                                     "Majority white")
   ) %>%  
-  group_by(PLACE_ST_NM, region, wave) %>%
+  group_by(PLACE_ST_NM, region, majority_minority, wave) %>%
   summarize(impervious = sum(imperv_area),
             green = sum(green_area),
             area = sum(area)
@@ -839,10 +805,10 @@ ungroup() %>%
                names_to = "landcover",
                values_to = "percent"
                ) %>%
-  filter(region == "Southwest") %>% 
-  ggplot(aes(wave, percent, group = landcover)) +
-  geom_line(aes(color=landcover)) + 
-  geom_point(aes(color=landcover)) +
+  filter(region == "Southwest" & landcover == "perc_imperv") %>% 
+  ggplot(aes(wave, percent, group = majority_minority)) +
+  geom_line(aes(color=majority_minority)) + 
+  geom_point(aes(color=majority_minority)) +
   scale_color_manual(values = wes_palette("Chevalier1")
                      ) +
   theme_minimal() + 
