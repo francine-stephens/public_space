@@ -7,6 +7,8 @@ Overview: Project that examines changing provision of public space and residenti
 * Prelim EDA: https://francine-stephens.github.io/francinestephens.github.io/green_space_demographic_churn.html
 
 
+![Bexar_impervious](https://user-images.githubusercontent.com/47190395/119046414-489bf700-b982-11eb-95c6-b35284920bda.png)
+
 ## File Organization
 
 * The Green space folder contains the green space data, which is downloaded from Google Earth Engine. 
