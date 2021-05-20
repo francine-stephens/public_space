@@ -825,9 +825,16 @@ ungroup() %>%
          PLACE_ST_NM = str_c(PLACE_NM, state_ab, sep = ", "),
          majority_minority = if_else(WHITE_NH_PCT < 50,
                                      "Majority Nonwhite",
-                                     "Majority white")
+                                     "Majority white"),
+         race_comp = case_when(
+           majority_minority == "Majority white" ~ "Majority white",
+           BLACK_NH_PCT > 50  ~ "Majority Black",
+           ASIAN_PACIFIC_NH_PCT > 50 ~ "Majority Asian",
+           HISPANIC_PCT > 50 ~ "Majority Latinx",
+           TRUE  ~ "Other"
+         )
   ) %>%  
-  group_by(PLACE_ST_NM, region, majority_minority, wave) %>%
+  group_by(PLACE_ST_NM, region, race_comp, wave) %>%
   summarize(impervious = sum(imperv_area),
             green = sum(green_area),
             area = sum(area)
@@ -840,12 +847,11 @@ ungroup() %>%
                names_to = "landcover",
                values_to = "percent"
                ) %>%
-  filter(region == "Southwest" & landcover == "perc_imperv") %>% 
-  ggplot(aes(wave, percent, group = majority_minority)) +
-  geom_line(aes(color=majority_minority)) + 
-  geom_point(aes(color=majority_minority)) +
-  scale_color_manual(values = wes_palette("Chevalier1")
-                     ) +
+  filter(region == "Pacific" & landcover == "perc_imperv") %>% 
+  ggplot(aes(wave, percent, group = race_comp)) +
+  geom_line(aes(color=race_comp)) + 
+  geom_point(aes(color=race_comp)) +
+  scale_color_manual(values = wes_palette("Darjeeling1")) +
   theme_minimal() + 
   facet_wrap(~ PLACE_ST_NM)
 
@@ -909,7 +915,7 @@ comal_all_data <- full_cbg_data %>%
          PLACE_ST_NM = str_c(PLACE_NM, state_ab, sep = ", "),
          STATECO = str_sub(GEOID10, end = 5)
   ) %>%
-  filter(STATECO == "48091")
+  filter(STATECO == "48091" | STATECO == "48029")
 
 comal_shp <- cbg10 %>%
   select(GEOID10, STATEFP10, COUNTYFP10) %>% 
@@ -925,7 +931,8 @@ tm_shape(comal_shp) +
   tm_polygons("perc_imperv", 
               style="quantile", 
               palette = "Greys",
-              title="Comal County") + 
+              title="Comal County",
+              border.alpha = 0.2) + 
       tm_facets(by = "wave")
 
 tmap_mode("view")
