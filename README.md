@@ -1,4 +1,4 @@
-## public_space
+## Public Space Projects
 Overview: Project that examines changing provision of public space and residential demographic churn.
 
 ## Links to view analyses: 
