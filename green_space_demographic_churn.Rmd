@@ -121,6 +121,8 @@ top100_places <- read_csv(paste0(shp_repo,
                                  "/top100_places_2010bounds.csv"))
 state_id_regions <- read_csv(paste0(shp_repo, 
                                     "/state_identifiers_census_regions.csv"))
+cbsa_county_cw <- read_csv(paste0(shp_repo,
+                                  "/cbsa2fipsxw2010.csv"))
 
 ```
 
@@ -157,6 +159,15 @@ cbg_all_geoids <- cbg10 %>%
                             "Metropolitan Area",
                             "Micropolitan Area")
          )
+
+cbsa_co_cw_reformat <- cbsa_county_cw %>%
+  mutate(across(ends_with("code"), as.character)) %>%
+    mutate(cbsacode = str_pad(cbsacode, 5, side = "left", "0"),
+           metrodivisioncode = str_pad(metrodivisioncode, 5, side = "left", "0"),
+           fipsstatecode = str_pad(fipsstatecode, 2, side = "left", "0"),
+           fipscountycode = str_pad(fipscountycode, 3, side = "left", "0"),
+           state_co = str_c(fipsstatecode, fipscountycode, sep = "")
+    )
 
 ## AREAL CALCULATIONS
 cbg_area <- cbg10 %>%
@@ -779,7 +790,7 @@ ggplot(., aes(x=year, y=perc_green, fill=majority_minority)) +
 ## Line Graphs
 
 ### Impervious space v. green-space
-```{r }
+```{r imp v green space lines}
 ## Southwest imperv and green-space
 full_cbg_data %>%
 ungroup() %>% 
@@ -894,12 +905,14 @@ tmap_last()
 
 ```{r bexar gray space}
 ## Impervious space
-tm_shape(bexar_shp) +
+imperv_bexar <- tm_shape(bexar_shp) +
   tm_polygons("perc_imperv", 
               style="quantile", 
               palette="Greys",
-              title="Bexar County") + 
+              title="Bexar County Impervious Space",
+              border.alpha = 0.2) + 
       tm_facets(by = "wave")
+tmap_save(imperv_bexar, "Bexar_impervious.png", width=1920, height=1080, asp=0)
 
 ```
 
@@ -915,17 +928,11 @@ comal_all_data <- full_cbg_data %>%
          PLACE_ST_NM = str_c(PLACE_NM, state_ab, sep = ", "),
          STATECO = str_sub(GEOID10, end = 5)
   ) %>%
-  filter(STATECO == "48091" | STATECO == "48029")
+  filter(STATECO == "48091")
 
 comal_shp <- cbg10 %>%
   select(GEOID10, STATEFP10, COUNTYFP10) %>% 
   right_join(comal_all_data, by ="GEOID10") 
-
-# %>% 
-#     ggplot() + 
-#     geom_sf(aes(fill=perc_green)) + 
-#   facet_wrap(~ wave)
-
 
 tm_shape(comal_shp) +
   tm_polygons("perc_imperv", 
@@ -938,9 +945,61 @@ tm_shape(comal_shp) +
 tmap_mode("view")
 tmap_last()
 
+# SATX-METRO
+satx_metro <- full_cbg_data %>% 
+  ungroup() %>% 
+  mutate(state_fips = str_sub(PLACEFP_DERIVED, end = 2)) %>% 
+  left_join(., state_id_regions, by = "state_fips") %>%  
+  mutate(PLACE_NM = str_remove(PLACE_DERIVED_NM, " city"),
+         PLACE_ST_NM = str_c(PLACE_NM, state_ab, sep = ", "),
+         STATECO = str_sub(GEOID10, end = 5)
+  ) %>% 
+  left_join(., cbsa_co_cw_reformat, by = c("STATECO" = "state_co")) %>%
+  filter(cbsacode == "41700")
+
+
+satx_metro_shp <- cbg10 %>%
+  select(GEOID10, STATEFP10, COUNTYFP10) %>% 
+  right_join(satx_metro, by ="GEOID10") 
+
+tm_shape(satx_metro_shp) +
+  tm_polygons("perc_imperv", 
+              style="quantile", 
+              palette = "Greys",
+              title="San Antonio, TX Metro",
+              border.alpha = 0.2) + 
+      tm_facets(by = "wave")
+
 ```
 
 
+
+```{r philly imperv}
+
+philly_metro <- full_cbg_data %>% 
+  ungroup() %>% 
+  mutate(state_fips = str_sub(PLACEFP_DERIVED, end = 2)) %>% 
+  left_join(., state_id_regions, by = "state_fips") %>%  
+  mutate(PLACE_NM = str_remove(PLACE_DERIVED_NM, " city"),
+         PLACE_ST_NM = str_c(PLACE_NM, state_ab, sep = ", "),
+         STATECO = str_sub(GEOID10, end = 5)
+  ) %>% 
+  left_join(., cbsa_co_cw_reformat, by = c("STATECO" = "state_co")) %>%
+  filter(metrodivisioncode == "37964")
+
+philly_metro_shp <- cbg10 %>%
+  select(GEOID10, STATEFP10, COUNTYFP10) %>% 
+  right_join(philly_metro, by ="GEOID10") 
+
+tm_shape(philly_metro_shp) +
+  tm_polygons("perc_imperv", 
+              style="quantile", 
+              palette = "Greys",
+              title="Philadelphia Metro",
+              border.alpha = 0.2) + 
+      tm_facets(by = "wave")
+
+```
 
 ## Multivariate Analysis
 
