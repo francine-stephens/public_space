@@ -12,7 +12,11 @@ output:
 ---
 
 ```{r setup, include=F, warning=F, message=F}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+    echo = TRUE, 
+  message = FALSE,
+  warning = FALSE
+)
 
 ## LIBRARIES
 packages <- c(
@@ -81,172 +85,16 @@ cbg10 <- st_read(paste0(shp_repo,
 
 ```{r data imports, warning=F, message=F}
 ## DATA IMPORTS-----------------------------------------------------------------
-evi_all_decades_cbg <- readRDS(paste0(wd, 
-                                      green_space_path,
-                                      "evi_all_years_on_2010cbg_LONG.rds"))
-
-evi_area_decades_cbg <- readRDS(paste0(wd, 
-                                      green_space_path,
-                                      "evi_area_all_years_on_2010cbg_LONG.rds"))
-
-imperv_area_decades_cbg <- readRDS(paste0(wd, 
-                                          imperv_space_path,
-                                          "impervious_area_all_years_on_2010cbg_LONG.rds"))
-
-race_all_decades_cbg <- readRDS(paste0(wd,
-                                       census_data_path, 
-                                       "/all_years_race_on_cbg10_LONG.rds"))
-
-housing_all_decades_cbg <- readRDS(paste0(wd, 
-                                          census_data_path, 
-                                          "/all_years_housing_on_cbg10_LONG.rds"))
-
-income_all_decades_cbg <- readRDS(paste0(wd, 
-                                          census_data_path, 
-                                          "/all_years_income_on_cbg10_LONG.rds"))
-
-counties <- get_decennial(geography = "county", 
-                          variables = "P001001", 
-                          year = 2010) 
-
-places <- get_decennial(geography = "place", 
-                        variables = "P001001", 
-                        year = 2010) 
-
-cbg_higher_geog_ids <- readRDS(paste0(shp_repo,
-                                      "/cbg_full_geog_identifers.rds"))
-top100_cbsa <- read_csv(paste0(shp_repo, 
-                               "/top100_cbsa_2010bounds.csv"))
-top100_places <- read_csv(paste0(shp_repo, 
-                                 "/top100_places_2010bounds.csv"))
-state_id_regions <- read_csv(paste0(shp_repo, 
-                                    "/state_identifiers_census_regions.csv"))
-cbsa_county_cw <- read_csv(paste0(shp_repo,
-                                  "/cbsa2fipsxw2010.csv"))
-
-```
+full_cbg_data_l <- readRDS("all_vars_on_cbg10_LONG.rds")
+full_cbg_data_chg_w <- readRDS("chg_vars_on_cbg10_WIDE.rds")
 
 
-````{r data prep, message=F, warning=F}
-#DATA PREPARATION---------------------------------------------------------------
-## MERGE ALL GEOIDs
-top100_cbsa <- top100_cbsa %>%
-  mutate(CBSAFP = as.character(CBSAFP)) %>%
-  select(-CBSA_NM) %>%
-  rename(top100_cbsa="top_100", cbsa_rank_pop_size="rank_pop_size")
-
-top100_places <- top100_places %>%
-  select(-PLACE_NM) %>%
-  rename(top100_place="top_100", place_rank_pop_size="rank_pop_size")
-
-counties <- counties %>%
-  select(PLACEFP_DERIVED = "GEOID", PLACE_DERIVED_NM = "NAME")
-
-cbg_all_geoids <- cbg10 %>%
-  st_set_geometry(NULL) %>%
-  select(GEOID10, GISJOIN) %>%
-  left_join(., cbg_higher_geog_ids, by=c("GEOID10", "GISJOIN")) %>%
-  mutate(PLACEFP_DERIVED = if_else(is.na(PLACEID),
-                                   str_sub(GEOID10, end=5),
-                                   PLACEID)) %>% 
-  left_join(., counties, by = "PLACEFP_DERIVED") %>%
-  mutate(PLACE_DERIVED_NM=coalesce(PLACE_DERIVED_NM, PLACE_NM)) %>%
-  relocate(PLACEFP_DERIVED, .after=PLACEID) %>%
-  relocate(PLACE_DERIVED_NM, .after=PLACE_NM) %>%
-  left_join(., top100_places, by=c("PLACEID"="PLACEFP")) %>%
-  left_join(., top100_cbsa, by=c("CBSAFP10"="CBSAFP")) %>%
-  mutate(in_metro = if_else(str_detect(CBSA_NM, "Metro"),
-                            "Metropolitan Area",
-                            "Micropolitan Area")
-         )
-
-cbsa_co_cw_reformat <- cbsa_county_cw %>%
-  mutate(across(ends_with("code"), as.character)) %>%
-    mutate(cbsacode = str_pad(cbsacode, 5, side = "left", "0"),
-           metrodivisioncode = str_pad(metrodivisioncode, 5, side = "left", "0"),
-           fipsstatecode = str_pad(fipsstatecode, 2, side = "left", "0"),
-           fipscountycode = str_pad(fipscountycode, 3, side = "left", "0"),
-           state_co = str_c(fipsstatecode, fipscountycode, sep = "")
-    )
-
-## AREAL CALCULATIONS
-cbg_area <- cbg10 %>%
-  select(GEOID10) %>%
-  mutate(area = st_area(.),
-         area = as.numeric(set_units(area, mi^2))
-         ) %>%
-  st_set_geometry(NULL)
-
-
-## MERGE ALL DEMOGRAPHIC & ENVIRONMENTAL DATA
-race_pct_all_decades_cbg <- race_all_decades_cbg %>% 
-  mutate_at(vars(WHITE_NH:HISPANIC), funs("PCT" = (./TOT_POP) * 100)) %>%
-  select(GEOID, wave, TOT_POP, WHITE_NH_PCT:HISPANIC_PCT) %>%
-  mutate(wave = as.numeric(wave),
-         wave = if_else(wave == 2019,
-                        2020,
-                        wave)
-         )
-
-housing_pct_all_decades_cbg <- housing_all_decades_cbg %>%
-  mutate_at(vars(OCCUPIED_UNITS, VACANT_UNITS),  funs("PCT" = (./H_UNITS) * 100)) %>%
-  mutate_at(vars(OWNER_OCC:RENTER_OCC), funs("PCT" = (./OCCUPIED_UNITS) * 100)) %>%
-  select(GEOID:H_UNITS, OCCUPIED_UNITS_PCT:RENTER_OCC_PCT) %>%
-  mutate(wave = as.numeric(wave),
-         wave = if_else(wave == 2019,
-                        2020,
-                        wave)
-  )
-
-income_pct_all_decades_cbg <- income_all_decades_cbg %>% 
-  mutate_at(vars(starts_with("INC_")), funs("PCT" = (./HH) * 100)) %>%
-  mutate(LOW_INC_PCT = rowSums(across(INC_LT10K_PCT:INC_20KTO24999_PCT)),
-         MID_INC_PCT = rowSums(across(INC_25KTO29999_PCT:INC_75KTO99999_PCT)),
-         AFF_INC_PCT = rowSums(across(INC_100KTO124999_PCT:INC_150KPLUS_PCT))
-         ) %>% 
-  select(GEOID:wave, LOW_INC_PCT:AFF_INC_PCT) %>% 
-  mutate(wave = as.numeric(wave),
-         wave = if_else(wave == 2019,
-                        2020,
-                        wave)
-         )
-
-evi_area_clean <- evi_area_decades_cbg %>% 
-  rename(green_area = "area")
-
-imp_area_clean <- imperv_area_decades_cbg %>%
-  rename(imperv_area = "area",
-         wave = "year") %>%
-  mutate(wave = as.numeric(wave))
-
-
-full_cbg_data <- evi_all_decades_cbg %>% 
-  left_join(., cbg_all_geoids, by = "GISJOIN") %>%
-  left_join(., race_pct_all_decades_cbg, by = c("GEOID10" = "GEOID",
-                                                "wave" = "wave")) %>% 
-  left_join(., housing_pct_all_decades_cbg, by = c("GEOID10" = "GEOID",
-                                                "wave" = "wave")) %>% 
-  left_join(., income_pct_all_decades_cbg, by = c("GEOID10" = "GEOID",
-                                                "wave" = "wave")) %>%   
-  relocate(evi, .before = TOT_POP) %>%
-  left_join(., cbg_area, by = "GEOID10") %>%
-  mutate(POP_DENS = TOT_POP/area,
-         H_DENS = H_UNITS/area) %>%
-  left_join(., evi_area_clean, by = c("GISJOIN", "wave")) %>%  
-  mutate(perc_green = green_area/area, 
-         perc_green = if_else(perc_green > 1, 
-                              1,
-                              perc_green)
-  ) %>%
-  left_join(., imp_area_clean, by = c("GISJOIN", "wave")) %>%  
-  mutate(perc_imperv = imperv_area/area, 
-         perc_imperv = if_else(perc_imperv > 1, 
-                              1,
-                              perc_imperv)
-  ) %>%
+## PREP EVI DATA
+full_cbg_data_l_evi_focus <- full_cbg_data_l %>% 
   filter(evi >= 0)
- 
+
 ```
+
 
 ## Metro-Micro Area Comparison
 
@@ -256,11 +104,10 @@ Greenness (EVI/NDVI) may take on different meanings/levels in metropolitan and m
 * Noticeably, the distribution for metro areas tends to spread more over time, especially as of 2020. Although the variation in greenness in micropolitan areas is appreciable in 2020 compared to previous decades, there is more clumping of values across the distribution in micropolitan areas, whereas the the tails of the metro area distribution are not as dense.
 
 ```{r violin evi metro and micro, message=F, warning=F}
-place_evi_by_year <- full_cbg_data %>%
+place_evi_by_year <- full_cbg_data_l %>%
   ungroup() %>%
   group_by(PLACEFP_DERIVED, PLACE_DERIVED_NM, wave, in_metro) %>% 
-  filter(!is.na(in_metro),
-         evi >=0) %>%
+  filter(!is.na(in_metro)) %>%
   summarize(evi_mean = mean(evi, na.rm = T),
             evi_min = min(evi, na.rm = T),
             evi_max = max(evi, na.rm = T),
@@ -318,7 +165,7 @@ Overall, as the EVI increases, the average percent of whites also increased. How
 
 ```{r evi and racial comp at cbg level, message=F, warning=F}
 ## CBG EVI & AVG RACIAL COMPOSITION METRO AREAS
-average_cbg_composition_by_evi <- full_cbg_data %>% 
+average_cbg_composition_by_evi <- full_cbg_data_l %>% 
   ungroup() %>%
   filter(evi >= 0 & evi <= 1,
          !is.na(evi),
@@ -352,9 +199,9 @@ How do metro areas compare to micropolitan areas with respect to racial/ethnic c
 
 ```{r test metro v micro areas evi and race comp, message=F, warning=F}
 ## CBG EVI & AVG RACIAL COMPOSITION METRO V. MICRO AREAS
-average_cbg_composition_by_evi_all_cbsa <- full_cbg_data %>% 
+average_cbg_composition_by_evi_all_cbsa <- full_cbg_data_l_evi_focus %>% 
   ungroup() %>%
-  filter(evi >= 0 & evi <= 1,
+  filter(evi <= 1,
          !is.na(evi),
          !is.na(in_metro)) %>%
   mutate(wave = as.character(wave),
@@ -392,19 +239,19 @@ This census block group is in Summerfield, Maryland, which is a suburb of Prince
 
 ```{r identify place cbgs with high evi and black 1990, message=F, warning=F}
 ## 1990 ANOMALY 
-knitr::kable(full_cbg_data %>%
+knitr::kable(full_cbg_data_l %>%
   filter(wave == 1990,
          evi > 0.84, 
          evi < 0.85) %>%
     ungroup() %>%
-  select(PLACE_NM, CBSA_NM, evi, WHITE_NH_PCT, BLACK_NH_PCT),
+  select(PLACE_NM, cbsatitle, evi, WHITE_NH_PCT, BLACK_NH_PCT),
   digits = 2,
   caption = "1990 Anomaly",
   col.names = c("Place", "Metro", "EVI", " % White", "% Black")
 )
 
 
-knitr::kable(full_cbg_data %>%
+knitr::kable(full_cbg_data_l_evi_focus %>%
   filter(PLACEFP_DERIVED == "2475810") %>%
   arrange(wave, evi) %>%
   mutate(wave = as.factor(wave)) %>%
@@ -436,7 +283,7 @@ knitr::kable(full_cbg_data %>%
 
 ```{r northeast connected dotplots}
 ## BEESWARM PLOTS OF WITHIN PLACE DISTRIBUTIONS 
-top100_places_within_time_comp <- full_cbg_data %>% 
+top100_places_within_time_comp <- full_cbg_data_l %>% 
   ungroup() %>% 
   filter(PLACEFP_DERIVED %in% top100_places$PLACEFP) %>% 
   mutate(state_fips = str_sub(PLACEFP_DERIVED, end = 2)) %>% 
@@ -618,7 +465,7 @@ top100_places_within_time_comp %>%
 evi_area_full_cbg <- evi_area_decades_cbg %>% 
   rename(green_area = "area") %>%
   left_join(., cbg_all_geoids, by = "GISJOIN") %>%
-  select(GISJOIN:CBSA_NM, top100_place, in_metro) %>%
+  select(GISJOIN:cbsatitle, top100_place, in_metro) %>%
   left_join(., cbg_area, by = "GEOID10") %>%
   mutate(perc_green = green_area/area, 
          perc_green = if_else(perc_green > 1, 
