@@ -35,6 +35,31 @@ select_mutate <- function(x) {
 }
 
 # PREPARE FULL DATASET----------------------------------------------------------
+## WIDE DATASET
+imp_area_90_w <- Imperv_1990_by_cbg10_AREA %>%
+  select_mutate(.) %>% 
+  rename(imp_area1990 = "area")
+imp_area_00_w <- Imperv_2000_by_cbg10_AREA %>%
+  select_mutate(.) %>%
+  rename(imp_area2000 = "area")
+imp_area_10_w <- Imperv_2010_by_cbg10_AREA %>%
+  select_mutate(.) %>%
+  rename(imp_area2010 = "area")
+imp_area_19_w <-  Imperv_2019_by_cbg10_AREA %>%
+  select_mutate(.) %>%
+  rename(imp_area2020 = "area")
+
+imp_area_all_years_wide <- imp_area_90_w %>%
+  left_join(., imp_area_00_w, by = "GISJOIN") %>%
+  left_join(., imp_area_10_w, by = "GISJOIN") %>%
+  left_join(., imp_area_19_w, by = "GISJOIN") %>%
+  mutate(areadiff_90to00 = imp_area2000 - imp_area1990,
+         areadiff_00to10 = imp_area2010 - imp_area2000,
+         areadiff_10to20 = imp_area2020 - imp_area2010)
+
+
+
+## LONG DATASET
 imp_area_90 <- Imperv_1990_by_cbg10_AREA %>%
   select_mutate(.) %>%
   mutate(year = 1990)

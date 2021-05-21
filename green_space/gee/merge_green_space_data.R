@@ -69,7 +69,7 @@ EVI_area_all_years <- EVI_area_90 %>%
              periods = c(1990, 2000, 2010, 2020),
              label_location = "end")
   
-## MODIS
+## MODIS VEGETATION 
 select_modis_vars <- function(x) { 
   x %>%       
     select(GISJOIN, median)
