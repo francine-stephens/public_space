@@ -3,7 +3,7 @@
 # 
 # AUTHOR: FRANCINE STEPHENS
 # DATE CREATED: 3/23/21
-# LAST UPDATED: 3/23/21
+# LAST UPDATED: 5/21/21
 #-------------------------------------
 
 
@@ -81,4 +81,4 @@ imp_area_all_years <- bind_rows(imp_area_90,
 
 # EXPORTS-----------------------------------------------------------------------
 saveRDS(imp_area_all_years, "impervious_area_all_years_on_2010cbg_LONG.rds")
-
+saveRDS(imp_area_all_years_wide, "impervious_area_all_years_on_2010cbg_WIDE.rds")
