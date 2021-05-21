@@ -21,6 +21,7 @@ census/race_90_on_10_cbg.rds
 census/nhgisacs2019_csv/R12793886_SL150.csv
 .RData
 green_space/nlcd/
+all_vars_on_cbg10_LONG.rds
 
 
         
