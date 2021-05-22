@@ -70,6 +70,11 @@ cbg10 <- st_read(paste0(shp_repo,
 full_cbg_data_l <- readRDS("all_vars_on_cbg10_LONG.rds")
 full_cbg_data_chg_w <- readRDS("chg_vars_on_cbg10_WIDE.rds")
 
+
+# PARAMETERS--------------------------------------------------------------------
+midwest_core <- c("MI", "OH", "IN", "IL")
+midwest_center <- c("WI", "MN", "MO", "KS", "NE")
+
 ```
 
 ## Place-Level Graphics {.tabset .tabset-fade}
@@ -89,7 +94,7 @@ prep_for_space_time_line_graphs <- function(x) {
             area = sum(area)
             ) %>% 
   ungroup() %>% 
-  mutate(perc_imperv = (impervious/area) * 100) %>% 
+  mutate(perc_impervious = (impervious/area) * 100) %>% 
   rename(perc_green = "green") %>%
   pivot_longer(
                cols = starts_with("perc_"),
@@ -99,7 +104,8 @@ prep_for_space_time_line_graphs <- function(x) {
 }
 
 make_imp_green_line_graphs <- function(x) { 
-  x %>% 
+  x %>%  
+    mutate(landcover = str_remove(landcover, "perc_")) %>%
   ggplot(aes(wave, percent, group = PLACE_ST_NM)) +
   geom_line(aes(color=PLACE_ST_NM), size = 1.2) + 
   geom_point(aes(color=PLACE_ST_NM), size = 1.5) +
@@ -109,9 +115,8 @@ make_imp_green_line_graphs <- function(x) {
     x = "Year",
     y = "% of Area",
     color = "Places") + 
-  ggthemes::theme_fivethirtyeight() + 
-  #theme_light() + 
-  facet_wrap(~ landcover) 
+  theme_minimal() + 
+  facet_wrap(~ landcover)
 } 
 
 # Imperv functions by racial composition subset
@@ -138,7 +143,7 @@ create_racial_comp_for_imp_lines <- function(x) {
             area = sum(area)
             ) %>% 
   ungroup() %>% 
-  mutate(perc_imperv = (impervious/area) * 100) %>%
+  mutate(perc_impervious = (impervious/area) * 100) %>%
   rename(perc_green = "green") %>%
   pivot_longer(
                cols = starts_with("perc_"),
@@ -154,8 +159,7 @@ make_race_comp_imp_line_graph <- function(x) {
   geom_point(aes(color=race_comp), size = 1.5) +
   scale_color_manual(values = wes_palette("Darjeeling1") 
                      ) +
-  ggthemes::theme_fivethirtyeight() + 
-  #theme_light() + 
+  theme_minimal() + 
   labs(
     title = "Share of Impervious Space by Neighborhood Racial Composition",
     x = "Year",
@@ -260,35 +264,75 @@ White neighborhoods with growing amounts of impervious space:
 
 
 ### Midwest
-```{r Midwest imperv v green}
-## Midwest
+```{r Midwest imperv v green core}
+## Midwest core
 full_cbg_data_l %>%
-  prep_for_space_time_line_graphs(.) %>%
-  filter(region == "Midwest") %>% 
+  prep_for_space_time_line_graphs(.) %>% 
+  mutate(state_ab = str_extract(PLACE_ST_NM, "[^, ]+$"), 
+         PLACE_ST_NM = str_replace(PLACE_ST_NM, " \\s*\\([^\\)]+\\)", "")) %>%
+  filter(region == "Midwest" & state_ab %in% midwest_core) %>% 
   make_imp_green_line_graphs(.)
 
 ```
 
+```{r Midwest imperv v green center}
+## Midwest center
+full_cbg_data_l %>%
+  prep_for_space_time_line_graphs(.) %>% 
+  mutate(state_ab = str_extract(PLACE_ST_NM, "[^, ]+$"), 
+         PLACE_ST_NM = str_replace(PLACE_ST_NM, " \\s*\\([^\\)]+\\)", "")) %>%
+  filter(region == "Midwest" & state_ab %in% midwest_center) %>% 
+  make_imp_green_line_graphs(.)
+
+```
 
 **Impervious Space By Neighborhood Racial Composition** 
 
-```{r racial comp impervious space Midwest}
+```{r racial comp impervious space Midwest core}
 ## Midwest RACE & IMPERVIOUS SPACE
 full_cbg_data_l %>%  
   create_racial_comp_for_imp_lines(.) %>% 
-  filter(region == "Midwest" & landcover == "perc_imperv") %>% 
+  mutate(state_ab = str_extract(PLACE_ST_NM, "[^, ]+$"),
+         PLACE_ST_NM = str_replace(PLACE_ST_NM, " \\s*\\([^\\)]+\\)", "")) %>%
+  filter(region == "Midwest" & state_ab %in% midwest_core & landcover == "perc_imperv") %>% 
   make_race_comp_imp_line_graph(.)
 
 ```
 
+```{r racial comp impervious space Midwest central}
+## Midwest RACE & IMPERVIOUS SPACE
+full_cbg_data_l %>%  
+  create_racial_comp_for_imp_lines(.) %>% 
+  mutate(state_ab = str_extract(PLACE_ST_NM, "[^, ]+$")
+        ) %>%
+  filter(region == "Midwest" & state_ab %in% midwest_center & landcover == "perc_imperv") %>% 
+  make_race_comp_imp_line_graph(.)
 
-White neighborhoods with less built up space than minority majority neighborhoods: 
+```
+
+White neighborhoods with less impervious space than minority majority neighborhoods: 
 
 * Fort Wayne, IN 
 * Indianapolis, IN
 * Kansas City, MO
 * Lincoln, NE (to a lesser extent)
 * Toledo, OH (to a lesser extent)
+
+Similar level of impervious space across all types of neighborhoods: 
+
+* Chicago, IL
+* Cleveland, OH
+
+Minority neighborhood with less impervious space than white majority neighborhoods:
+
+* Detroit, MI (Black)
+* Wichita, KS (Black)
+
+Neighborhoods without a majority racial group have least amount of impervious space:
+
+* St. Louis, MO
+* Wichita, KS
+
 
 ### South
 ```{r South imperv v green}
@@ -465,7 +509,7 @@ White neighborhoods with less built up space than minority majority neighborhood
 
 
 
-***
+<p>&nbsp;</p>
 
 
 ## Metro-level Graphics
