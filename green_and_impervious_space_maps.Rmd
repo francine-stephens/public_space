@@ -77,6 +77,35 @@ midwest_center <- c("WI", "MN", "MO", "KS", "NE")
 
 ```
 
+## Data Updates
+
+There are two issues that I found with the results that I presented. The graphics in the other sections are not fully updated from the previous meeting. 
+
+**1. I only pulled non-tree vegetation.**
+
+Green space composition varies quite a bit across places. In some places, tree-cover is the more prominent type of vegetation (compared to shrubs, bushes, grasses). The EVI measure does not distinguish between tree cover and other types of vegetation. After reading more papers on green space measures, I have noticed that many studies aggregate tree cover and other types of vegetation, but also call out patterns where there are differences between the various types of vegetation. 
+
+Prior studies have often treated green space as a monolithic concept, employing only a few measures. As I read and view the raster data, I see the value of both continuous and categorical measures of green space. The spatial distributions of green spaces identified with each green measure look different. The spatial patterns of green amenities, i.e. parks, trails, golf courses and sports fields (categorical measures) are highly different from the patterns identified with general, comprehensive green measures, e.g. NDVI or percent treecover, percent other vegetation (continuous measures). Tests of spatial autocorrelation would indicate whether these differences are statistically different. 
+
+**Steps In-progress**
+
+* Pulled the tree cover measures. 
+* Compute the change over time in % tree cover, % other vegetation, and % tree cover + % other vegetation for each pixel and use zonal statistics for the change over time measures. 
+  + Computing change within pixel and then aggregating is cleaner than how I was previously computing (i.e., compute the % per year, aggregating to CBG, and then calculating the change across CBGs over time.) 
+* "Check" % tree cover and % other vegetation with categorical measures (e.g., polygons of open space, NLCD categorical data.). This would pave the way for SVM classification, too. 
+
+
+
+**2. The 2020 data have fewer satellite images available compared to the previous years.** 
+
+The satellite had a different cadence in 2020, which is unfortunate, because I had standardized the time period snapshot for the imagery using the 2000 imagery. 
+
+**Next steps**
+
+I will need to reduce the imagery interval of 2000 and 2010 to be comparable to the 2020 data, unless I can find some other work-around.  
+
+
+
 ## Place-Level Graphics {.tabset .tabset-fade}
 
 ```{r line graph functions}
@@ -188,7 +217,7 @@ full_cbg_data_l %>%
 ## NE RACE & IMPERVIOUS SPACE
 full_cbg_data_l %>%  
   create_racial_comp_for_imp_lines(.) %>% 
-  filter(region == "Northeast" & landcover == "perc_imperv") %>% 
+  filter(region == "Northeast" & landcover == "perc_impervious") %>%
   make_race_comp_imp_line_graph(.)
 
 ```
@@ -232,7 +261,7 @@ full_cbg_data_l %>%
 ## Mid-Atl RACE & IMPERVIOUS SPACE
 full_cbg_data_l %>%  
   create_racial_comp_for_imp_lines(.) %>% 
-  filter(region == "Mid-Atlantic" & landcover == "perc_imperv") %>% 
+  filter(region == "Mid-Atlantic" & landcover == "perc_impervious") %>% 
   make_race_comp_imp_line_graph(.)
 
 ```
@@ -294,7 +323,7 @@ full_cbg_data_l %>%
   create_racial_comp_for_imp_lines(.) %>% 
   mutate(state_ab = str_extract(PLACE_ST_NM, "[^, ]+$"),
          PLACE_ST_NM = str_replace(PLACE_ST_NM, " \\s*\\([^\\)]+\\)", "")) %>%
-  filter(region == "Midwest" & state_ab %in% midwest_core & landcover == "perc_imperv") %>% 
+  filter(region == "Midwest" & state_ab %in% midwest_core & landcover == "perc_impervious") %>% 
   make_race_comp_imp_line_graph(.)
 
 ```
@@ -305,7 +334,7 @@ full_cbg_data_l %>%
   create_racial_comp_for_imp_lines(.) %>% 
   mutate(state_ab = str_extract(PLACE_ST_NM, "[^, ]+$")
         ) %>%
-  filter(region == "Midwest" & state_ab %in% midwest_center & landcover == "perc_imperv") %>% 
+  filter(region == "Midwest" & state_ab %in% midwest_center & landcover == "perc_impervious") %>% 
   make_race_comp_imp_line_graph(.)
 
 ```
@@ -357,7 +386,7 @@ full_cbg_data_l %>%
 ## South RACE & IMPERVIOUS SPACE
 full_cbg_data_l %>%  
   create_racial_comp_for_imp_lines(.) %>% 
-  filter(region == "South" & landcover == "perc_imperv") %>% 
+  filter(region == "South" & landcover == "perc_impervious") %>% 
   mutate(PLACE_ST_NM = str_remove(PLACE_ST_NM, " urban county"), 
          PLACE_ST_NM = str_remove(PLACE_ST_NM, " government"),
          PLACE_ST_NM = str_remove(PLACE_ST_NM, " metropolitan"),
@@ -395,7 +424,7 @@ full_cbg_data_l %>%
 ## Southwest RACE & IMPERVIOUS SPACE
 full_cbg_data_l %>%  
   create_racial_comp_for_imp_lines(.) %>% 
-  filter(region == "Southwest" & landcover == "perc_imperv") %>% 
+  filter(region == "Southwest" & landcover == "perc_impervious") %>% 
   make_race_comp_imp_line_graph(.)
 
 ```
@@ -473,7 +502,7 @@ full_cbg_data_l %>%
 ## Mountain RACE & IMPERVIOUS SPACE
 full_cbg_data_l %>%  
   create_racial_comp_for_imp_lines(.) %>% 
-  filter(region == "West" & landcover == "perc_imperv") %>% 
+  filter(region == "West" & landcover == "perc_impervious") %>% 
   make_race_comp_imp_line_graph(.)
 
 ```
@@ -495,7 +524,7 @@ full_cbg_data_l %>%
 full_cbg_data_l %>%  
   create_racial_comp_for_imp_lines(.) %>% 
   filter(region == "Pacific" & PLACE_ST_NM != "Anchorage municipality, AK") %>% 
-  filter(landcover == "perc_imperv") %>% 
+  filter(landcover == "perc_impervious") %>% 
   mutate(PLACE_ST_NM = str_remove(PLACE_ST_NM, "Urban ")) %>%
   make_race_comp_imp_line_graph(.)
 
