@@ -22,6 +22,8 @@ census/nhgisacs2019_csv/R12793886_SL150.csv
 .RData
 green_space/nlcd/
 all_vars_on_cbg10_LONG.rds
+green_space/usa_parks/*
+
 
 
         
