@@ -3,7 +3,7 @@
 # 
 # AUTHOR: FRANCINE STEPHENS
 # DATE CREATED: 3/4/21
-# LAST UPDATED: 5/20/21
+# LAST UPDATED: 6/11/21
 #-------------------------------------
 
 # SET-UP------------------------------------------------------------------------
@@ -75,6 +75,7 @@ select_modis_vars <- function(x) {
     select(GISJOIN, median)
 }
 
+# NON-TREE VEGETATION
 pct_veg_2000 <- median_pct_veg_2000_by_cbg  %>%
   select_modis_vars(.) %>%
   rename(med_pct_veg_2000 = "median")
@@ -103,6 +104,10 @@ long_med_pct_veg <- wide_med_pct_veg %>%
              id = "GISJOIN",
              periods = c(2000, 2010, 2020),
              label_location = "end")
+
+
+# TREE COVER
+
 
 
 # EXPORTS-----------------------------------------------------------------------
