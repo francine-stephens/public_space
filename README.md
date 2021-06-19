@@ -13,3 +13,10 @@ Overview: Project that examines changing provision of public space and residenti
 
 * The Green space folder contains the green space data, which is downloaded from Google Earth Engine. 
 * The Census folder contains the relevant census data. 
+
+## Reference Sites
+
+* [How Landsat data is used in research](https://landsat.gsfc.nasa.gov/article/landsat-helps-urban-planners-find-disparities-access-green-spaces)
+* [USDA National Datasets](https://data.fs.usda.gov/geodata/edw/datasets.php)
+* [USGS Data Tools](https://www.usgs.gov/products/data-and-tools/gis-data)
+* [Sentinel - using satellite data](https://www.sentinel-hub.com/explore/education/)
