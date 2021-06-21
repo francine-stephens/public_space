@@ -1,0 +1,193 @@
+---
+title: "Accessibility of Parks"
+author: "Francine Stephens"
+date: "6/20/2021"
+date: "Last Updated: `r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    theme: journal
+    highlight: espresso
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  message = FALSE,
+  warning = FALSE,
+  comment = NA
+  )
+
+## LIBRARIES
+packages <- c(
+  "readr",
+  "tidyverse",
+  "sf",
+  "ggplot2", 
+  "ggbeeswarm",
+  "ggstream",
+  "scales",
+  "units",
+  "ggcorrplot",
+  "modelsummary",
+  "stargazer",
+  "panelr",
+  "tigris",
+  "censusapi", 
+  "tidycensus",
+  "RColorBrewer",
+  "hrbrthemes",
+  "viridis", 
+  "wesanderson",
+  "leaflet", 
+  "tmap"
+)
+lapply(packages, library, character.only = T)
+
+## PATHS
+setwd("~/Projects/public_space")
+wd <- getwd()
+parks_path <- "/green_space/usa_parks/"
+imperv_space_path <- "/impervious_space/"
+census_data_path <- "/census"
+shp_repo <- "C:/Users/Franc/Documents/Shapefile_Repository"
+shp2010_path <- "/2010USA_CensusGeog_Shp"
+cbsa_path <- "/tl_2010_us_cbsa10/"
+tracts10_path <- "/2010USA_CensusGeog_Shp/nhgis0005_shapefile_tl2010_us_tract_2010/"
+metros10_path <- "/2010USA_CensusGeog_Shp/tl_2010_us_cbsa10/"
+metdiv_path <- "/tl_2010_us_metdiv10/"
+cbg10_path <- "/us_blck_grp_2010/"
+places10_path <- "/tl2010_us_place_2010/"
+
+## PARAMETERS
+
+albersea <- 7301  #general Albers Equal Area Conic 
+#or Lamberts Conformal Conic
+
+
+
+## SHAPEFILE IMPORTS
+cbg10 <- st_read(paste0(shp_repo,
+                        shp2010_path,
+                        cbg10_path,
+                        "US_blck_grp_2010.shp"), 
+                 quiet = FALSE)
+
+tracts10 <- st_read(paste0(shp_repo, 
+                           tracts10_path,
+                           "US_tract_2010.shp"),
+                    quiet = F)
+
+metros10 <- st_read(paste0(shp_repo, 
+                         metros10_path,
+                         "tl_2010_us_cbsa10.shp"),
+                  quiet = FALSE)
+
+state_codes <- c(state.abb, "DC")
+
+places <- map_df(state_codes,
+                 ~places(state = .x, cb = TRUE)
+                )
+counties <- map_df(state_codes,
+                 ~counties(state = .x, cb = TRUE)
+                )
+
+
+usa_parks <- st_read(paste0(wd,
+                            parks_path,
+                            'USA Parks.shp'))
+
+## DATA IMPORTS-----------------------------------------------------------------
+full_cbg_data_l <- readRDS("all_vars_on_cbg10_LONG.rds")
+full_cbg_data_chg_w <- readRDS("chg_vars_on_cbg10_WIDE.rds")
+
+```
+
+## Parks Attributes
+
+```{r park types}
+table(usa_parks$FEATTYPE)
+
+```
+
+```{r projection}
+## Projections
+project_shp <- function(x) { 
+  x %>%       
+   st_transform(., crs = albersea)
+}
+
+usa_parks_prj <- usa_parks %>%
+  project_shp(.)
+  
+places_prj <- places %>%
+  project_shp(.)
+
+```
+
+## Parks by Places
+
+You can also embed plots, for example:
+
+```{r overlay parks on places, echo=FALSE}
+
+parks_per_places <- usa_parks_prj %>%
+  st_join(., places_prj, join = st_within) %>% 
+  mutate(
+    leftover_area = st_area(.),
+  ) %>%
+  group_by(GEOID) %>%
+  summarize(parks = n(),
+            total_park_area = sum(SQMI)
+            ) 
+
+parks_per_places <- parks_per_places %>% 
+  st_set_geometry(NULL) %>%
+  left_join(., places, by = "GEOID")
+
+
+```
+
+```{r parks per places}
+parks_per_places %>% 
+  select(parks, total_park_area, NAME, STATEFP, GEOID) %>%
+  arrange(-parks)
+
+```
+
+
+```{r park area per place}
+parks_per_places %>% 
+  select(parks, total_park_area, NAME, STATEFP, GEOID) %>%
+  arrange(-total_park_area)
+
+```
+
+
+## Parks by Places
+
+```{r overlay parks on counties}
+
+parks_per_county <- usa_parks_prj %>%
+  st_join(., counties %>% project_shp(.), join = st_within) %>% 
+  mutate(
+    leftover_area = st_area(.),
+  ) %>%
+  group_by(GEOID) %>%
+  summarize(parks = n(),
+            total_park_area = sum(SQMI)
+            )  %>% 
+  st_set_geometry(NULL) %>%
+  left_join(., counties, by = "GEOID")
+
+```
+
+
+```{r parks per county}
+parks_per_county %>% 
+  select(parks, total_park_area, NAME, STATEFP, GEOID) %>%
+  arrange(-parks)
+
+```
