@@ -102,6 +102,11 @@ usa_parks <- st_read(paste0(wd,
 ## DATA IMPORTS-----------------------------------------------------------------
 full_cbg_data_l <- readRDS("all_vars_on_cbg10_LONG.rds")
 full_cbg_data_chg_w <- readRDS("chg_vars_on_cbg10_WIDE.rds")
+parks_scores <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-06-22/parks.csv') 
+    # The Public Lands Trust Parks Scores
+    # https://www.tpl.org/parkserve/downloads
+    # https://www.tpl.org/parkscore/about
+
 
 ```
 
@@ -166,7 +171,7 @@ parks_per_places %>%
 ```
 
 
-## Parks by Places
+## Parks by County
 
 ```{r overlay parks on counties}
 
@@ -188,6 +193,30 @@ parks_per_county <- usa_parks_prj %>%
 ```{r parks per county}
 parks_per_county %>% 
   select(parks, total_park_area, NAME, STATEFP, GEOID) %>%
+  arrange(-parks)
+
+```
+
+## Parks by Metros
+
+```{r overlay parks of metros}
+parks_per_metros <- usa_parks_prj %>%
+  st_join(., metros10 %>% project_shp(.), join = st_within) %>% 
+  mutate(
+    leftover_area = st_area(.),
+  ) %>%
+  group_by(GEOID10) %>%
+  summarize(parks = n(),
+            total_park_area = sum(SQMI)
+            )  %>% 
+  st_set_geometry(NULL) %>%
+  left_join(., metros10, by = "GEOID10")
+
+```
+
+```{r parks per metros}
+parks_per_metros %>% 
+  select(parks, total_park_area, NAME10, GEOID10) %>%
   arrange(-parks)
 
 ```
