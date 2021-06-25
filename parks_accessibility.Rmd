@@ -42,7 +42,8 @@ packages <- c(
   "viridis", 
   "wesanderson",
   "leaflet", 
-  "tmap"
+  "tmap",
+  "mapboxapi"
 )
 lapply(packages, library, character.only = T)
 
@@ -62,9 +63,13 @@ cbg10_path <- "/us_blck_grp_2010/"
 places10_path <- "/tl2010_us_place_2010/"
 
 ## PARAMETERS
-
 albersea <- 7301  #general Albers Equal Area Conic 
 #or Lamberts Conformal Conic
+wgs <- 4326
+
+mb_access_token("sk.eyJ1IjoiZnJhbmNpbmVzdGVwaGVucyIsImEiOiJja2ljb3VrczMwdDdhMnhsNjA4Yjh1c2h1In0.WJjq6TysT6zZZnaxsN0s5g",
+                overwrite = TRUE)
+readRenviron("~/.Renviron")
 
 
 
@@ -90,9 +95,12 @@ state_codes <- c(state.abb, "DC")
 places <- map_df(state_codes,
                  ~places(state = .x, cb = TRUE)
                 )
+
 counties <- map_df(state_codes,
                  ~counties(state = .x, cb = TRUE)
                 )
+
+data(fips_codes)
 
 
 usa_parks <- st_read(paste0(wd,
@@ -212,11 +220,75 @@ parks_per_metros <- usa_parks_prj %>%
   st_set_geometry(NULL) %>%
   left_join(., metros10, by = "GEOID10")
 
+
+## Intersects join version 
+parks_per_metros_int <- usa_parks_prj %>%
+  st_join(., metros10 %>% project_shp(.), join = st_intersects) %>% 
+  mutate(
+    leftover_area = st_area(.),
+  ) %>%
+  group_by(GEOID10) %>%
+  summarize(parks = n(),
+            total_park_area = sum(SQMI),
+            total_park_area2 = sum(leftover_area)
+            )  %>% 
+  st_set_geometry(NULL) %>%
+  left_join(., metros10, by = "GEOID10")
+
+##Insersection
+parks_metros_intersection <- st_intersection(usa_parks_prj,
+                                             metros10 %>% project_shp(.))
+
+parks_metros_intersection <- parks_metros_intersection %>%  
+  mutate(intersection_area = st_area(.)) %>%
+  group_by(GEOID10) %>%
+  summarize(parks = n(),
+            total_park_area = sum(SQMI),
+            total_park_area2 = sum(intersection_area)
+            )  %>% 
+  st_set_geometry(NULL) %>%
+  left_join(., metros10, by = "GEOID10")
+
+
+leaflet() %>% 
+  addTiles() %>%
+  addPolygons(
+    data = parks_metros_intersection %>% st_transform(., wgs),
+    label = ~NAME
+  )
+plot(parks_metros_intersection["FEATTYPE"])
+
 ```
 
 ```{r parks per metros}
+## St_within version
 parks_per_metros %>% 
   select(parks, total_park_area, NAME10, GEOID10) %>%
   arrange(-parks)
 
 ```
+
+
+```{r parks per metros intersects}
+##st_intersects version
+parks_per_metros_int %>% 
+  select(parks, total_park_area, total_park_area2, NAME10, GEOID10) %>%
+  arrange(-parks)
+
+```
+
+```{r parks per metros intersection}
+##st_intersection version
+parks_metros_intersection %>% 
+  select(parks, total_park_area, total_park_area2, NAME10, GEOID10) %>%
+  arrange(-parks)
+
+
+# FIND METROS/MICROS WITHOUT PARK SPACE
+metros10 %>%
+  filter(!GEOID10 %in% parks_metros_intersection$GEOID10) %>%
+  select(GEOID10:NAMELSAD10)
+
+```
+
+## Figure out how to handle within and intersections. 
