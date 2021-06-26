@@ -120,77 +120,93 @@ parks_scores <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidy
 
 ## Parks Attributes
 
+There are a total of 58,028 parks in the USA Parks dataset. The table below shows the breakdown by type of park space. 85% of the park spaces are owned and maintained by local governments. 
+
+
 ```{r park types}
-table(usa_parks$FEATTYPE)
+knitr::kable(usa_parks %>% 
+               st_set_geometry(NULL) %>%
+               select(FEATTYPE) %>%
+               count(FEATTYPE) %>%
+               arrange(-n),
+             col.names = c("Type of Park", "Freq."),
+             caption = "Count of Parks in the U.S.",
+             format.args = list(big.mark = ",")
+             )
 
 ```
 
 ```{r projection}
 ## Projections
-project_shp <- function(x) { 
-  x %>%       
-   st_transform(., crs = albersea)
-}
-
 usa_parks_prj <- usa_parks %>%
-  project_shp(.)
+  st_transform(., crs = albersea)
   
-places_prj <- places %>%
-  project_shp(.)
-
 ```
 
 ## Parks by Places
 
-You can also embed plots, for example:
-
 ```{r overlay parks on places, echo=FALSE}
-
+## Within join
 parks_per_places <- usa_parks_prj %>%
-  st_join(., places_prj, join = st_within) %>% 
+  st_join(., places %>% st_transform(albersea), join = st_within) %>% 
   mutate(
-    leftover_area = st_area(.),
+    within_area = st_area(.),
   ) %>%
   group_by(GEOID) %>%
   summarize(parks = n(),
-            total_park_area = sum(SQMI)
+            total_park_area = sum(SQMI),
+            total_clip_area = sum(within_area)
             ) 
 
 parks_per_places <- parks_per_places %>% 
   st_set_geometry(NULL) %>%
   left_join(., places, by = "GEOID")
 
+## intersection join
+parks_per_places_intersection <- usa_parks_prj %>% 
+  st_intersection(., places %>% st_transform(., albersea)
+                  ) %>%
+  mutate(intersection_area = st_area(.)) %>%
+  group_by(GEOID) %>%
+  summarize(parks = n(),
+            total_park_area = sum(SQMI),
+            total_park_area2 = sum(intersection_area)
+            )  %>% 
+  st_set_geometry(NULL) %>%
+  left_join(., places, by = "GEOID")
+
 
 ```
 
-```{r parks per places}
-parks_per_places %>% 
-  select(parks, total_park_area, NAME, STATEFP, GEOID) %>%
+```{r park intersections results}
+parks_per_places_intersection %>%
+    select(parks, total_park_area, total_park_area2, NAME, STATEFP, GEOID) %>%
   arrange(-parks)
 
-```
-
-
-```{r park area per place}
-parks_per_places %>% 
-  select(parks, total_park_area, NAME, STATEFP, GEOID) %>%
-  arrange(-total_park_area)
+# 54,083 parks 
 
 ```
 
+```{r places without parks}
+# FIND PLACES WITHOUT PARK SPACE
+places %>% 
+  filter(!GEOID %in% parks_per_places_intersection$GEOID) %>%
+  st_set_geometry(NULL)
+
+
+```
 
 ## Parks by County
 
 ```{r overlay parks on counties}
-
-parks_per_county <- usa_parks_prj %>%
-  st_join(., counties %>% project_shp(.), join = st_within) %>% 
-  mutate(
-    leftover_area = st_area(.),
-  ) %>%
+parks_per_county <-  usa_parks_prj %>% 
+  st_intersection(., counties %>% st_transform(., albersea)
+                  ) %>%
+  mutate(intersection_area = st_area(.)) %>%
   group_by(GEOID) %>%
   summarize(parks = n(),
-            total_park_area = sum(SQMI)
+            total_park_area = sum(SQMI),
+            total_park_area2 = sum(intersection_area)
             )  %>% 
   st_set_geometry(NULL) %>%
   left_join(., counties, by = "GEOID")
@@ -200,10 +216,21 @@ parks_per_county <- usa_parks_prj %>%
 
 ```{r parks per county}
 parks_per_county %>% 
-  select(parks, total_park_area, NAME, STATEFP, GEOID) %>%
+  select(parks, total_park_area, total_park_area2, NAME, STATEFP, GEOID) %>%
   arrange(-parks)
 
+#61,569
+
 ```
+```{r find counties without park spaces}
+# FIND PLACES WITHOUT PARK SPACE
+counties %>% 
+  filter(!GEOID %in% parks_per_county$GEOID) %>%
+  st_set_geometry(NULL)
+
+
+```
+
 
 ## Parks by Metros
 
@@ -260,23 +287,6 @@ plot(parks_metros_intersection["FEATTYPE"])
 
 ```
 
-```{r parks per metros}
-## St_within version
-parks_per_metros %>% 
-  select(parks, total_park_area, NAME10, GEOID10) %>%
-  arrange(-parks)
-
-```
-
-
-```{r parks per metros intersects}
-##st_intersects version
-parks_per_metros_int %>% 
-  select(parks, total_park_area, total_park_area2, NAME10, GEOID10) %>%
-  arrange(-parks)
-
-```
-
 ```{r parks per metros intersection}
 ##st_intersection version
 parks_metros_intersection %>% 
@@ -291,4 +301,3 @@ metros10 %>%
 
 ```
 
-## Figure out how to handle within and intersections. 
