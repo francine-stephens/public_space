@@ -116,6 +116,16 @@ parks_scores <- read_csv('https://raw.githubusercontent.com/rfordatascience/tidy
     # https://www.tpl.org/parkscore/about
 
 
+## FUNCTIONS--------------------------------------------------------------------
+compute_area_sqmi <- function(x) { 
+  x %>%       
+  st_transform(., albersea) %>%
+  mutate(
+    area = st_area(.),
+    area_sqmi = as.numeric(set_units(area, mi^2))
+    )
+}
+
 ```
 
 ## Parks Attributes
@@ -143,49 +153,66 @@ usa_parks_prj <- usa_parks %>%
   
 ```
 
-## Parks by Places
+```{r fips codes set-up}
+## State fips codes only
+state_identifiers <- fips_codes %>%
+  select(state:state_name) %>%
+  distinct(.)
+
+```
+
+## Parks by Places {.tabset .tabset-fade}
 
 ```{r overlay parks on places, echo=FALSE}
-## Within join
-parks_per_places <- usa_parks_prj %>%
-  st_join(., places %>% st_transform(albersea), join = st_within) %>% 
-  mutate(
-    within_area = st_area(.),
-  ) %>%
-  group_by(GEOID) %>%
-  summarize(parks = n(),
-            total_park_area = sum(SQMI),
-            total_clip_area = sum(within_area)
-            ) 
-
-parks_per_places <- parks_per_places %>% 
-  st_set_geometry(NULL) %>%
-  left_join(., places, by = "GEOID")
-
 ## intersection join
-parks_per_places_intersection <- usa_parks_prj %>% 
+parks_per_places <- usa_parks_prj %>% 
   st_intersection(., places %>% st_transform(., albersea)
                   ) %>%
-  mutate(intersection_area = st_area(.)) %>%
+  mutate(
+    intersection_area = st_area(.),
+    area_sqmi = as.numeric(set_units(intersection_area, mi^2))
+    ) %>%
   group_by(GEOID) %>%
   summarize(parks = n(),
             total_park_area = sum(SQMI),
-            total_park_area2 = sum(intersection_area)
+            total_park_area_sqme = sum(intersection_area),
+            total_park_area_sqmi = sum(area_sqmi)
             )  %>% 
   st_set_geometry(NULL) %>%
   left_join(., places, by = "GEOID")
 
+## compute area of places
+places_area <- places %>% 
+  compute_area_sqmi(.)
 
 ```
 
-```{r park intersections results}
-parks_per_places_intersection %>%
-    select(parks, total_park_area, total_park_area2, NAME, STATEFP, GEOID) %>%
-  arrange(-parks)
-
-# 54,083 parks 
+```{r park park count results}
+parks_per_places %>%
+    select(parks, total_park_area, total_park_area_sqmi, NAME, STATEFP, GEOID) %>%
+  arrange(-parks) %>%
+  left_join(., state_identifiers, by = c("STATEFP" ="state_code")
+            ) %>%
+  left_join(., places_area %>% select(GEOID, area_sqmi), by = "GEOID") %>%
+  mutate(percent_of_land_area = (total_park_area_sqmi/area_sqmi) * 100) %>%
+  relocate(NAME, state, parks, total_park_area_sqmi, percent_of_land_area)
+  # 54,083 parks 
 
 ```
+
+```{r park area ordered}
+parks_per_places %>%
+  select(parks, total_park_area, total_park_area_sqmi, NAME, STATEFP, GEOID) %>%
+  left_join(., state_identifiers, by = c("STATEFP" ="state_code")
+            ) %>%
+  left_join(., places_area %>% select(GEOID, area_sqmi), by = "GEOID") %>%
+  mutate(percent_of_land_area = (total_park_area_sqmi/area_sqmi) * 100) %>%
+  relocate(NAME, state, total_park_area_sqmi, percent_of_land_area, parks) %>%
+  arrange(percent_of_land_area) %>%
+  filter(percent_of_land_area > 1 & percent_of_land_area < 100)
+
+```
+
 
 ```{r places without parks}
 # FIND PLACES WITHOUT PARK SPACE
@@ -193,8 +220,183 @@ places %>%
   filter(!GEOID %in% parks_per_places_intersection$GEOID) %>%
   st_set_geometry(NULL)
 
+```
+
+
+### Chicago
+
+Chicago has the most parks. The number of green-ways, (i.e., green areas between major roadways), particularly on the western side of the city  is striking.
+
+```{r extract chicago and its parks}
+chicago <- places %>%
+  filter(NAME == "Chicago") %>%
+  compute_area_sqmi(.)
+
+chicago_parks <- usa_parks_prj %>% 
+  st_intersection(., chicago %>% st_transform(., albersea)
+                  ) %>%
+  mutate(
+    intersection_area = st_area(.),
+    area_sqmi = as.numeric(set_units(intersection_area, mi^2))
+    )
+  
+leaflet() %>% 
+  addTiles() %>%
+  addPolygons(
+    data = chicago_parks %>% st_transform(., wgs),
+    label = ~NAME,
+    fillColor = "green",
+    weight = 2,
+    opacity = 1,
+    color = "white",
+    fillOpacity = 0.7
+  )
 
 ```
+
+Although there are many parks in Chicago, they tend to be small in size. The average park area is 0.03 square miles. The largest park is 1.27 square miles. In total, park space makes up 17.05 square miles in Chicago, which is approximately 7% of the city's land area.   
+
+```{r chicago park size}
+summary(chicago_parks$area_sqmi)
+
+```
+
+
+Most of Chicago's parks are local. 2 are county and 3 are regional. 
+
+```{r types of parks}
+knitr::kable(chicago_parks %>% 
+               st_set_geometry(NULL) %>%
+               select(FEATTYPE) %>%
+               count(FEATTYPE) %>%
+               arrange(-n),
+             col.names = c("Type of Park", "Freq."),
+             caption = "Count of Parks in Chicago.",
+             format.args = list(big.mark = ",")
+             )
+
+```
+
+
+### Philadelphia
+
+```{r extract philly and its parks}
+philly <- places %>%
+  filter(NAME == "Philadelphia" & STATEFP == "42") %>%
+  compute_area_sqmi(.)
+
+philly_parks <- usa_parks_prj %>% 
+  st_intersection(., philly %>% st_transform(., albersea)
+                  ) %>%
+  mutate(
+    intersection_area = st_area(.),
+    area_sqmi = as.numeric(set_units(intersection_area, mi^2))
+    )
+  
+leaflet() %>% 
+addMapboxTiles(
+    style_id = "streets-v11",
+    username = "mapbox"
+  ) %>%
+  addPolygons(
+    data = philly %>% st_transform(., wgs),
+    fillColor = "transparent",
+    color = "black"
+  ) %>%
+  addPolygons(
+    data = philly_parks %>% st_transform(., wgs),
+    label = ~NAME,
+    fillColor = "green",
+    weight = 2,
+    opacity = 1,
+    color = "white",
+    fillOpacity = 0.7
+  )
+
+```
+
+### Hialeah 
+
+Hialeah is among the top 100 cities by population size as of 2010. Among the top 100 cities, Hialeah has the lowest amount of park area. There are 17 parks in Hialeah. All of these parks are locally maintained and owned. 
+
+```{r extract hialeah and its parks}
+hialeah <- places %>%
+  filter(NAME == "Hialeah") %>%
+  compute_area_sqmi(.)
+
+hialeah_parks <- usa_parks_prj %>% 
+  st_intersection(., hialeah %>% st_transform(., albersea)
+                  ) %>%
+  mutate(
+    intersection_area = st_area(.),
+    area_sqmi = as.numeric(set_units(intersection_area, mi^2))
+    )
+  
+leaflet() %>% 
+  addTiles() %>%
+  addPolygons(
+    data = hialeah %>% st_transform(., wgs),
+    fillColor = "transparent",
+    color = "black"
+  ) %>% 
+  addPolygons(
+    data = hialeah_parks %>% st_transform(., wgs),
+    label = ~NAME,
+    fillColor = "green",
+    weight = 2,
+    opacity = 1,
+    color = "white",
+    fillOpacity = 0.7
+  )
+  
+
+```
+
+The parks cover small amounts of area. The average park size in Hialeah is 0.01 square miles, and the largest park spans about 0.04 miles. 
+
+```{r hialeah park area}
+summary(hialeah_parks$area_sqmi)
+
+```
+
+
+### Eau Claire 
+
+Eau Claire, Wisconsin is another city with very low park coverage. 
+
+
+```{r extract Eau Claire and parks}
+eau_claire <- places %>%
+  filter(NAME == "Eau Claire" & STATEFP == "55") %>%
+  compute_area_sqmi(.)
+
+eau_claire_parks <- usa_parks_prj %>% 
+  st_intersection(., eau_claire %>% st_transform(., albersea)
+                  ) %>%
+  mutate(
+    intersection_area = st_area(.),
+    area_sqmi = as.numeric(set_units(intersection_area, mi^2))
+    )
+
+leaflet() %>% 
+  addTiles() %>%
+  addPolygons(
+    data = eau_claire %>% st_transform(., wgs),
+    fillColor = "transparent",
+    color = "black"
+  ) %>% 
+  addPolygons(
+    data = eau_claire_parks %>% st_transform(., wgs),
+    label = ~NAME,
+    fillColor = "green",
+    weight = 2,
+    opacity = 1,
+    color = "white",
+    fillOpacity = 0.7
+  )
+
+```
+
 
 ## Parks by County
 
@@ -222,6 +424,7 @@ parks_per_county %>%
 #61,569
 
 ```
+
 ```{r find counties without park spaces}
 # FIND PLACES WITHOUT PARK SPACE
 counties %>% 
@@ -275,15 +478,6 @@ parks_metros_intersection <- parks_metros_intersection %>%
             )  %>% 
   st_set_geometry(NULL) %>%
   left_join(., metros10, by = "GEOID10")
-
-
-leaflet() %>% 
-  addTiles() %>%
-  addPolygons(
-    data = parks_metros_intersection %>% st_transform(., wgs),
-    label = ~NAME
-  )
-plot(parks_metros_intersection["FEATTYPE"])
 
 ```
 
