@@ -404,14 +404,22 @@ leaflet() %>%
 parks_per_county <-  usa_parks_prj %>% 
   st_intersection(., counties %>% st_transform(., albersea)
                   ) %>%
-  mutate(intersection_area = st_area(.)) %>%
+  mutate(
+    intersection_area = st_area(.),
+    area_sqmi = as.numeric(set_units(intersection_area, mi^2))
+    ) %>%
   group_by(GEOID) %>%
   summarize(parks = n(),
             total_park_area = sum(SQMI),
-            total_park_area2 = sum(intersection_area)
+            total_park_area_sqme = sum(intersection_area),
+            total_park_area_sqmi = sum(area_sqmi)
             )  %>% 
   st_set_geometry(NULL) %>%
   left_join(., counties, by = "GEOID")
+
+## compute area of places
+counties_area <- counties %>% 
+  compute_area_sqmi(.)
 
 ```
 
@@ -419,7 +427,13 @@ parks_per_county <-  usa_parks_prj %>%
 ```{r parks per county}
 parks_per_county %>% 
   select(parks, total_park_area, total_park_area2, NAME, STATEFP, GEOID) %>%
-  arrange(-parks)
+  arrange(-parks) %>%
+  left_join(., state_identifiers, by = c("STATEFP" ="state_code")
+            ) %>%
+  left_join(., counties_area %>% select(GEOID, area_sqmi), by = "GEOID") %>%
+  mutate(percent_of_land_area = (total_park_area_sqmi/area_sqmi) * 100) %>%
+  relocate(NAME, state, parks, total_park_area_sqmi, percent_of_land_area)
+
 
 #61,569
 
