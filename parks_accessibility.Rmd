@@ -126,6 +126,15 @@ compute_area_sqmi <- function(x) {
     )
 }
 
+create_paged_table_view <- function(x) { 
+  x %>%       
+  left_join(., state_identifiers, by = c("STATEFP" ="state_code")
+            ) %>%
+  left_join(., places_area %>% select(GEOID, area_sqmi), by = "GEOID") %>%
+  mutate(percent_of_land_area = (total_park_area_sqmi/area_sqmi) * 100) %>%
+  select(NAME, state, parks, total_park_area_sqmi, percent_of_land_area)
+}
+
 ```
 
 ## Parks Attributes
@@ -165,21 +174,23 @@ state_identifiers <- fips_codes %>%
 
 ```{r overlay parks on places, echo=FALSE}
 ## intersection join
-parks_per_places <- usa_parks_prj %>% 
-  st_intersection(., places %>% st_transform(., albersea)
-                  ) %>%
-  mutate(
-    intersection_area = st_area(.),
-    area_sqmi = as.numeric(set_units(intersection_area, mi^2))
-    ) %>%
-  group_by(GEOID) %>%
-  summarize(parks = n(),
-            total_park_area = sum(SQMI),
-            total_park_area_sqme = sum(intersection_area),
-            total_park_area_sqmi = sum(area_sqmi)
-            )  %>% 
-  st_set_geometry(NULL) %>%
-  left_join(., places, by = "GEOID")
+# parks_per_places <- usa_parks_prj %>% 
+#   st_intersection(., places %>% st_transform(., albersea)
+#                   ) %>%
+#   mutate(
+#     intersection_area = st_area(.),
+#     area_sqmi = as.numeric(set_units(intersection_area, mi^2))
+#     ) %>%
+#   group_by(GEOID) %>%
+#   summarize(parks = n(),
+#             total_park_area = sum(SQMI),
+#             total_park_area_sqme = sum(intersection_area),
+#             total_park_area_sqmi = sum(area_sqmi)
+#             )  %>% 
+#   st_set_geometry(NULL) %>%
+#   left_join(., places, by = "GEOID")
+# saveRDS(parks_per_places, "parks_per_places_2021.rds")
+parks_per_places <- readRDS("parks_per_places_2021.rds")
 
 ## compute area of places
 places_area <- places %>% 
@@ -188,26 +199,17 @@ places_area <- places %>%
 ```
 
 ```{r park park count results}
-parks_per_places %>%
-    select(parks, total_park_area, total_park_area_sqmi, NAME, STATEFP, GEOID) %>%
-  arrange(-parks) %>%
-  left_join(., state_identifiers, by = c("STATEFP" ="state_code")
-            ) %>%
-  left_join(., places_area %>% select(GEOID, area_sqmi), by = "GEOID") %>%
-  mutate(percent_of_land_area = (total_park_area_sqmi/area_sqmi) * 100) %>%
-  relocate(NAME, state, parks, total_park_area_sqmi, percent_of_land_area)
+rmarkdown::paged_table(parks_per_places %>% 
+  create_paged_table_view(.) %>%
+  arrange(-parks) 
+)
   # 54,083 parks 
 
 ```
 
-```{r park area ordered}
+```{r park area ordered for places}
 parks_per_places %>%
-  select(parks, total_park_area, total_park_area_sqmi, NAME, STATEFP, GEOID) %>%
-  left_join(., state_identifiers, by = c("STATEFP" ="state_code")
-            ) %>%
-  left_join(., places_area %>% select(GEOID, area_sqmi), by = "GEOID") %>%
-  mutate(percent_of_land_area = (total_park_area_sqmi/area_sqmi) * 100) %>%
-  relocate(NAME, state, total_park_area_sqmi, percent_of_land_area, parks) %>%
+  create_paged_table_view(.) %>%
   arrange(percent_of_land_area) %>%
   filter(percent_of_land_area > 1 & percent_of_land_area < 100)
 
@@ -217,8 +219,11 @@ parks_per_places %>%
 ```{r places without parks}
 # FIND PLACES WITHOUT PARK SPACE
 places %>% 
-  filter(!GEOID %in% parks_per_places_intersection$GEOID) %>%
-  st_set_geometry(NULL)
+  filter(!GEOID %in% parks_per_places$GEOID) %>%
+  st_set_geometry(NULL) %>% 
+  left_join(., state_identifiers, by = c("STATEFP" ="state_code")
+            ) %>%
+  select(NAME, state)
 
 ```
 
@@ -426,21 +431,18 @@ counties_area <- counties %>%
 
 ```{r parks per county}
 parks_per_county %>% 
-  select(parks, total_park_area, total_park_area2, NAME, STATEFP, GEOID) %>%
-  arrange(-parks) %>%
   left_join(., state_identifiers, by = c("STATEFP" ="state_code")
             ) %>%
   left_join(., counties_area %>% select(GEOID, area_sqmi), by = "GEOID") %>%
   mutate(percent_of_land_area = (total_park_area_sqmi/area_sqmi) * 100) %>%
-  relocate(NAME, state, parks, total_park_area_sqmi, percent_of_land_area)
-
-
+  relocate(NAME, state, parks, total_park_area_sqmi, percent_of_land_area) %>%
+  arrange(-parks) 
 #61,569
 
 ```
 
 ```{r find counties without park spaces}
-# FIND PLACES WITHOUT PARK SPACE
+# FIND COUNTIES WITHOUT PARK SPACE
 counties %>% 
   filter(!GEOID %in% parks_per_county$GEOID) %>%
   st_set_geometry(NULL)
