@@ -1,5 +1,5 @@
 ---
-title: "Accessibility of Parks"
+title: "Distribution of Parks"
 author: "Francine Stephens"
 date: "Last Updated: `r format(Sys.time(), '%B %d, %Y')`"
 output:
