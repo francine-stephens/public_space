@@ -1,12 +1,11 @@
 ---
 title: "Accessibility of Parks"
 author: "Francine Stephens"
-date: "6/20/2021"
 date: "Last Updated: `r format(Sys.time(), '%B %d, %Y')`"
 output:
   html_document:
-    toc: true
-    toc_float: true
+    toc: false
+    toc_float: false
     code_folding: hide
     theme: journal
     highlight: espresso
@@ -74,16 +73,16 @@ readRenviron("~/.Renviron")
 
 
 ## SHAPEFILE IMPORTS
-cbg10 <- st_read(paste0(shp_repo,
-                        shp2010_path,
-                        cbg10_path,
-                        "US_blck_grp_2010.shp"), 
-                 quiet = FALSE)
-
-tracts10 <- st_read(paste0(shp_repo, 
-                           tracts10_path,
-                           "US_tract_2010.shp"),
-                    quiet = F)
+# cbg10 <- st_read(paste0(shp_repo,
+#                         shp2010_path,
+#                         cbg10_path,
+#                         "US_blck_grp_2010.shp"), 
+#                  quiet = FALSE)
+# 
+# tracts10 <- st_read(paste0(shp_repo, 
+#                            tracts10_path,
+#                            "US_tract_2010.shp"),
+#                     quiet = F)
 
 metros10 <- st_read(paste0(shp_repo, 
                          metros10_path,
@@ -152,7 +151,7 @@ create_paged_table_view <- function(x) {
 
 ```
 
-## Parks Attributes
+## Park Attributes  {.tabset .tabset-fade}
 
 There are a total of 58,028 parks in the USA Parks dataset. The table below shows the breakdown by type of park space. 85% of the park spaces are owned and maintained by local governments. 
 
@@ -185,7 +184,7 @@ state_identifiers <- fips_codes %>%
 
 ```
 
-## Parks by Places {.tabset .tabset-fade}
+### Parks by Places
 
 ```{r overlay parks on places, echo=FALSE}
 ## intersection join
@@ -232,13 +231,12 @@ parks_per_places_reactable <- reactable(parks_per_places %>%
 
 div(class = "parks_per_places_reactable",
   div(class = "parks_per_places_reactable-header",
-      h3(class = "parks_per_places_reactable-title", "Table 1: Parks per Places"),
+      h3(class = "parks_per_places_reactable-title", "Parks by Places"),
      parks_per_places_reactable
   )
 )
 
 ```
-
 
 ```{r places without parks}
 ## FIND PLACES WITHOUT PARK SPACE
@@ -266,7 +264,7 @@ places_without_parks_reactable <- reactable(places %>%
 
 div(class = "places_without_parks_reactable",
   div(class = "places_without_parks_reactable-header",
-      h3(class = "places_without_parks_reactable-title", "Table 2: Places without Parks"),
+      h3(class = "places_without_parks_reactable-title", "Places without Parks"),
      places_without_parks_reactable
   )
 )
@@ -274,7 +272,8 @@ div(class = "places_without_parks_reactable",
 ```
 
 
-### Chicago
+#### Maps for Select Regions {.tabset .tabset-fade}
+##### Chicago
 
 Chicago has the most parks. The number of green-ways, (i.e., green areas between major roadways), particularly on the western side of the city  is striking.
 
@@ -292,14 +291,22 @@ chicago_parks <- usa_parks_prj %>%
     )
   
 leaflet() %>% 
-  addTiles() %>%
+addMapboxTiles(
+    style_id = "streets-v11",
+    username = "mapbox"
+  ) %>% 
+  addPolygons(
+    data = chicago %>% st_transform(., wgs),
+    fillColor = "transparent",
+    color = "black"
+  ) %>%
   addPolygons(
     data = chicago_parks %>% st_transform(., wgs),
     label = ~NAME,
     fillColor = "green",
     weight = 2,
     opacity = 1,
-    color = "white",
+    color = "black",
     fillOpacity = 0.7
   )
 
@@ -329,7 +336,7 @@ knitr::kable(chicago_parks %>%
 ```
 
 
-### Philadelphia
+##### Philadelphia
 
 ```{r extract philly and its parks}
 philly <- places %>%
@@ -360,13 +367,88 @@ addMapboxTiles(
     fillColor = "green",
     weight = 2,
     opacity = 1,
-    color = "white",
+    color = "black",
     fillOpacity = 0.7
   )
 
 ```
 
-### Hialeah 
+
+##### San Antonio
+```{r extract san antonio and its parks}
+san_antonio <- places %>%
+  filter(NAME == "San Antonio" & STATEFP == "48") %>%
+  compute_area_sqmi(.)
+
+san_antonio_parks <- usa_parks_prj %>% 
+  st_intersection(., san_antonio %>% st_transform(., albersea)
+                  ) %>%
+  mutate(
+    intersection_area = st_area(.),
+    area_sqmi = as.numeric(set_units(intersection_area, mi^2))
+    )
+  
+leaflet() %>% 
+addMapboxTiles(
+    style_id = "streets-v11",
+    username = "mapbox"
+  ) %>%
+  addPolygons(
+    data = san_antonio %>% st_transform(., wgs),
+    fillColor = "transparent",
+    color = "black"
+  ) %>%
+  addPolygons(
+    data = san_antonio_parks %>% st_transform(., wgs),
+    label = ~NAME,
+    fillColor = "green",
+    weight = 2,
+    opacity = 1,
+    color = "black",
+    fillOpacity = 0.7
+  )
+
+```
+
+##### San Francisco
+```{r extract san francisco and its parks}
+san_francisco <- places %>%
+  filter(NAME == "San Francisco" & STATEFP == "06") %>%
+  compute_area_sqmi(.)
+
+san_francisco_parks <- usa_parks_prj %>% 
+  st_intersection(., san_francisco %>% st_transform(., albersea)
+                  ) %>%
+  mutate(
+    intersection_area = st_area(.),
+    area_sqmi = as.numeric(set_units(intersection_area, mi^2))
+    )
+  
+leaflet() %>% 
+addMapboxTiles(
+    style_id = "streets-v11",
+    username = "mapbox"
+  ) %>%
+  addPolygons(
+    data = san_francisco %>% st_transform(., wgs),
+    fillColor = "transparent",
+    color = "black"
+  ) %>%
+  addPolygons(
+    data = san_francisco_parks %>% st_transform(., wgs),
+    label = ~NAME,
+    fillColor = "green",
+    weight = 2,
+    opacity = 1,
+    color = "black",
+    fillOpacity = 0.7
+  )
+
+```
+
+
+
+##### Hialeah 
 
 Hialeah is among the top 100 cities by population size as of 2010. Among the top 100 cities, Hialeah has the lowest amount of park area. There are 17 parks in Hialeah. All of these parks are locally maintained and owned. 
 
@@ -384,7 +466,10 @@ hialeah_parks <- usa_parks_prj %>%
     )
   
 leaflet() %>% 
-  addTiles() %>%
+  addMapboxTiles(
+    style_id = "streets-v11",
+    username = "mapbox"
+  ) %>%
   addPolygons(
     data = hialeah %>% st_transform(., wgs),
     fillColor = "transparent",
@@ -396,7 +481,7 @@ leaflet() %>%
     fillColor = "green",
     weight = 2,
     opacity = 1,
-    color = "white",
+    color = "black",
     fillOpacity = 0.7
   )
   
@@ -411,7 +496,7 @@ summary(hialeah_parks$area_sqmi)
 ```
 
 
-### Eau Claire 
+##### Eau Claire 
 
 Eau Claire, Wisconsin is another city with very low park coverage. 
 
@@ -430,7 +515,10 @@ eau_claire_parks <- usa_parks_prj %>%
     )
 
 leaflet() %>% 
-  addTiles() %>%
+  addMapboxTiles(
+    style_id = "streets-v11",
+    username = "mapbox"
+  ) %>%
   addPolygons(
     data = eau_claire %>% st_transform(., wgs),
     fillColor = "transparent",
@@ -442,14 +530,14 @@ leaflet() %>%
     fillColor = "green",
     weight = 2,
     opacity = 1,
-    color = "white",
+    color = "black",
     fillOpacity = 0.7
   )
 
 ```
 
 
-## Parks by County
+### Parks by County
 
 ```{r overlay parks on counties}
 ## Create parks per county dataset 
@@ -493,7 +581,7 @@ parks_per_county_reactable <- reactable(parks_per_county %>%
 
 div(class = "parks_per_county_reactable",
   div(class = "parks_per_county_reactable-header",
-      h3(class = "parks_per_county_reactable-title", "Table 3: Parks per County"),
+      h3(class = "parks_per_county_reactable-title", "Parks by County"),
      parks_per_county_reactable
   )
 )
@@ -518,7 +606,7 @@ counties_without_parks_reactable <- reactable(counties %>%
 
 div(class = "counties_without_parks_reactable",
   div(class = "counties_without_parks_reactable-header",
-      h3(class = "counties_without_parks_reactable-title", "Table 2: Counties without Parks"),
+      h3(class = "counties_without_parks_reactable-title", "Counties without Parks"),
      counties_without_parks_reactable
   )
 )
@@ -526,7 +614,7 @@ div(class = "counties_without_parks_reactable",
 ```
 
 
-## Parks by Metros
+### Parks by Metros
 
 ```{r overlay parks of metros}
 ## Create parks by metros dataset
@@ -548,20 +636,54 @@ div(class = "counties_without_parks_reactable",
 # saveRDS(parks_per_metro, "parks_per_metro_2021.rds")
 parks_per_metro <- readRDS("parks_per_metro_2021.rds")
 
+metros10_area <- metros10 %>%
+  compute_area_sqmi(.)
+
 ```
 
 ```{r parks per metros intersection}
 ##st_intersection version
-parks_per_metro %>% 
+rmarkdown::paged_table(parks_per_metro %>% 
   select(parks, total_park_area_sqmi, NAME10, GEOID10) %>%
-  arrange(-parks)
+  arrange(-parks) %>%
+  left_join(., metros10_area %>% select(GEOID10, area_sqmi), by = "GEOID10") %>%
+  mutate(percent_of_land_area = (total_park_area_sqmi/area_sqmi) * 100) %>%
+  select(NAME10, parks, total_park_area_sqmi, percent_of_land_area) %>%
+  mutate(total_park_area_sqmi = round(total_park_area_sqmi, digits = 2),
+         percent_of_land_area = percent(percent_of_land_area, accuracy = 0.01,
+                                              scale = 1, suffix = "%"
+                                               ), 
+         parks = format(parks, big.mark = ",")
+         ) %>%
+  rename(Region = "NAME10",
+         Parks = "parks",
+         'Area (sq mi.)' = "total_park_area_sqmi",
+         'Percent of Land Cover' = "percent_of_land_area"
+         )
+)
 
 
-# FIND METROS/MICROS WITHOUT PARK SPACE
-metros10 %>%
+```
+
+```{r metros without parks}
+## FIND METROS/MICROS WITHOUT PARK SPACE
+metros_without_parks_reactable <- reactable(metros10 %>%
   filter(!GEOID10 %in% parks_per_metro$GEOID10) %>% 
   st_set_geometry(NULL) %>%
-  select(GEOID10:NAMELSAD10)
+  select(GEOID10:NAMELSAD10), 
+  searchable = TRUE, 
+  filterable = TRUE,
+  striped = TRUE,
+  highlight = TRUE,
+  minRows = 10)
+
+
+div(class = "metros_without_parks_reactable",
+  div(class = "metros_without_parks_reactable-header",
+      h3(class = "metros_without_parks_reactable-title", "Metros without Parks"),
+     metros_without_parks_reactable
+  )
+)
 
 ```
 
