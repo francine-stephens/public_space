@@ -12,7 +12,7 @@ output:
     highlight: espresso
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, echo=FALSE}
 knitr::opts_chunk$set(
   echo = TRUE, 
   message = FALSE,
@@ -26,8 +26,6 @@ packages <- c(
   "tidyverse",
   "sf",
   "ggplot2", 
-  "ggbeeswarm",
-  "ggstream",
   "scales",
   "units",
   "ggcorrplot",
@@ -43,7 +41,9 @@ packages <- c(
   "wesanderson",
   "leaflet", 
   "tmap",
-  "mapboxapi"
+  "mapboxapi",
+  "reactable",
+  "htmltools"
 )
 lapply(packages, library, character.only = T)
 
@@ -126,6 +126,21 @@ compute_area_sqmi <- function(x) {
     )
 }
 
+post_intersection_cleaning <- function(x) { 
+  x %>% 
+  mutate(
+    intersection_area = st_area(.),
+    area_sqmi = as.numeric(set_units(intersection_area, mi^2))
+    ) %>%
+  group_by(GEOID) %>%
+  summarize(parks = n(),
+            total_park_area = sum(SQMI),
+            total_park_area_sqme = sum(intersection_area),
+            total_park_area_sqmi = sum(area_sqmi)
+            )  %>%
+  st_set_geometry(NULL) 
+  }
+
 create_paged_table_view <- function(x) { 
   x %>%       
   left_join(., state_identifiers, by = c("STATEFP" ="state_code")
@@ -174,20 +189,10 @@ state_identifiers <- fips_codes %>%
 
 ```{r overlay parks on places, echo=FALSE}
 ## intersection join
-# parks_per_places <- usa_parks_prj %>% 
+# parks_per_places <- usa_parks_prj %>%
 #   st_intersection(., places %>% st_transform(., albersea)
 #                   ) %>%
-#   mutate(
-#     intersection_area = st_area(.),
-#     area_sqmi = as.numeric(set_units(intersection_area, mi^2))
-#     ) %>%
-#   group_by(GEOID) %>%
-#   summarize(parks = n(),
-#             total_park_area = sum(SQMI),
-#             total_park_area_sqme = sum(intersection_area),
-#             total_park_area_sqmi = sum(area_sqmi)
-#             )  %>% 
-#   st_set_geometry(NULL) %>%
+#   post_intersection_cleaning(.) %>%
 #   left_join(., places, by = "GEOID")
 # saveRDS(parks_per_places, "parks_per_places_2021.rds")
 parks_per_places <- readRDS("parks_per_places_2021.rds")
@@ -199,31 +204,72 @@ places_area <- places %>%
 ```
 
 ```{r park park count results}
-rmarkdown::paged_table(parks_per_places %>% 
-  create_paged_table_view(.) %>%
-  arrange(-parks) 
-)
+# rmarkdown::paged_table(parks_per_places %>% 
+#   create_paged_table_view(.) %>%
+#   arrange(-parks) 
+# )
   # 54,083 parks 
 
-```
-
-```{r park area ordered for places}
-parks_per_places %>%
+parks_per_places_reactable <- reactable(parks_per_places %>% 
   create_paged_table_view(.) %>%
-  arrange(percent_of_land_area) %>%
-  filter(percent_of_land_area > 1 & percent_of_land_area < 100)
+  arrange(-parks) %>% 
+    mutate(total_park_area_sqmi = round(total_park_area_sqmi, digits = 2),
+           percent_of_land_area = percent(percent_of_land_area, accuracy = 0.01,
+                                                scale = 1, suffix = "%" 
+                                                 )
+           ) %>%
+  rename(Name = "NAME",
+         State = "state",
+         Parks = "parks", 
+         'Area (Sq Mi)' = "total_park_area_sqmi",
+         'Percent of Land Cover' = "percent_of_land_area"), 
+  searchable = TRUE,
+  filterable = TRUE,
+  striped = TRUE,
+  highlight = TRUE,
+  minRows = 10
+  )
+
+div(class = "parks_per_places_reactable",
+  div(class = "parks_per_places_reactable-header",
+      h3(class = "parks_per_places_reactable-title", "Table 1: Parks per Places"),
+     parks_per_places_reactable
+  )
+)
 
 ```
 
 
 ```{r places without parks}
-# FIND PLACES WITHOUT PARK SPACE
-places %>% 
+## FIND PLACES WITHOUT PARK SPACE
+# rmarkdown::paged_table(places %>% 
+#   filter(!GEOID %in% parks_per_places$GEOID) %>%
+#   st_set_geometry(NULL) %>% 
+#   left_join(., state_identifiers, by = c("STATEFP" ="state_code")
+#             ) %>%
+#   select(NAME, state)
+# )
+
+
+places_without_parks_reactable <- reactable(places %>% 
   filter(!GEOID %in% parks_per_places$GEOID) %>%
   st_set_geometry(NULL) %>% 
   left_join(., state_identifiers, by = c("STATEFP" ="state_code")
             ) %>%
-  select(NAME, state)
+  select(Name = "NAME", State = "state"), 
+  searchable = TRUE, 
+  filterable = TRUE,
+  striped = TRUE,
+  highlight = TRUE,
+  minRows = 10)
+
+
+div(class = "places_without_parks_reactable",
+  div(class = "places_without_parks_reactable-header",
+      h3(class = "places_without_parks_reactable-title", "Table 2: Places without Parks"),
+     places_without_parks_reactable
+  )
+)
 
 ```
 
@@ -269,7 +315,7 @@ summary(chicago_parks$area_sqmi)
 
 Most of Chicago's parks are local. 2 are county and 3 are regional. 
 
-```{r types of parks}
+```{r chicago types of parks}
 knitr::kable(chicago_parks %>% 
                st_set_geometry(NULL) %>%
                select(FEATTYPE) %>%
@@ -406,21 +452,15 @@ leaflet() %>%
 ## Parks by County
 
 ```{r overlay parks on counties}
-parks_per_county <-  usa_parks_prj %>% 
-  st_intersection(., counties %>% st_transform(., albersea)
-                  ) %>%
-  mutate(
-    intersection_area = st_area(.),
-    area_sqmi = as.numeric(set_units(intersection_area, mi^2))
-    ) %>%
-  group_by(GEOID) %>%
-  summarize(parks = n(),
-            total_park_area = sum(SQMI),
-            total_park_area_sqme = sum(intersection_area),
-            total_park_area_sqmi = sum(area_sqmi)
-            )  %>% 
-  st_set_geometry(NULL) %>%
-  left_join(., counties, by = "GEOID")
+## Create parks per county dataset 
+# parks_per_county <-  usa_parks_prj %>% 
+#   st_intersection(., counties %>% st_transform(., albersea)
+#                   ) %>%
+#   post_intersection_cleaning(.) %>%
+#   left_join(., counties, by = "GEOID")
+# saveRDS(parks_per_county, "parks_per_county_2021.rds")
+parks_per_county <- readRDS("parks_per_county_2021.rds")
+
 
 ## compute area of places
 counties_area <- counties %>% 
@@ -429,24 +469,59 @@ counties_area <- counties %>%
 ```
 
 
-```{r parks per county}
-parks_per_county %>% 
-  left_join(., state_identifiers, by = c("STATEFP" ="state_code")
-            ) %>%
-  left_join(., counties_area %>% select(GEOID, area_sqmi), by = "GEOID") %>%
-  mutate(percent_of_land_area = (total_park_area_sqmi/area_sqmi) * 100) %>%
-  relocate(NAME, state, parks, total_park_area_sqmi, percent_of_land_area) %>%
-  arrange(-parks) 
-#61,569
+```{r parks per county table}
+#61,569 park count
+## create table
+parks_per_county_reactable <- reactable(parks_per_county %>% 
+  create_paged_table_view(.) %>% 
+    mutate(total_park_area_sqmi = round(total_park_area_sqmi, digits = 2),
+           percent_of_land_area = percent(percent_of_land_area, accuracy = 0.01,
+                                                scale = 1, suffix = "%" 
+                                                 )
+           ) %>%
+  rename(County = "NAME",
+         State = "state",
+         Parks = "parks", 
+         'Area (Sq Mi)' = "total_park_area_sqmi",
+         'Percent of Land Cover' = "percent_of_land_area"), 
+  searchable = TRUE,
+  filterable = TRUE,
+  striped = TRUE,
+  highlight = TRUE,
+  minRows = 10
+  )
+
+div(class = "parks_per_county_reactable",
+  div(class = "parks_per_county_reactable-header",
+      h3(class = "parks_per_county_reactable-title", "Table 3: Parks per County"),
+     parks_per_county_reactable
+  )
+)
+
 
 ```
 
 ```{r find counties without park spaces}
 # FIND COUNTIES WITHOUT PARK SPACE
-counties %>% 
+counties_without_parks_reactable <- reactable(counties %>% 
   filter(!GEOID %in% parks_per_county$GEOID) %>%
-  st_set_geometry(NULL)
+  st_set_geometry(NULL) %>% 
+  left_join(., state_identifiers, by = c("STATEFP" ="state_code")
+            ) %>%
+  select(County = "NAME", State = "state"), 
+  searchable = TRUE, 
+  filterable = TRUE,
+  striped = TRUE,
+  highlight = TRUE,
+  minRows = 10)
 
+
+div(class = "counties_without_parks_reactable",
+  div(class = "counties_without_parks_reactable-header",
+      h3(class = "counties_without_parks_reactable-title", "Table 2: Counties without Parks"),
+     counties_without_parks_reactable
+  )
+)
 
 ```
 
@@ -454,59 +529,38 @@ counties %>%
 ## Parks by Metros
 
 ```{r overlay parks of metros}
-parks_per_metros <- usa_parks_prj %>%
-  st_join(., metros10 %>% project_shp(.), join = st_within) %>% 
-  mutate(
-    leftover_area = st_area(.),
-  ) %>%
-  group_by(GEOID10) %>%
-  summarize(parks = n(),
-            total_park_area = sum(SQMI)
-            )  %>% 
-  st_set_geometry(NULL) %>%
-  left_join(., metros10, by = "GEOID10")
-
-
-## Intersects join version 
-parks_per_metros_int <- usa_parks_prj %>%
-  st_join(., metros10 %>% project_shp(.), join = st_intersects) %>% 
-  mutate(
-    leftover_area = st_area(.),
-  ) %>%
-  group_by(GEOID10) %>%
-  summarize(parks = n(),
-            total_park_area = sum(SQMI),
-            total_park_area2 = sum(leftover_area)
-            )  %>% 
-  st_set_geometry(NULL) %>%
-  left_join(., metros10, by = "GEOID10")
-
-##Insersection
-parks_metros_intersection <- st_intersection(usa_parks_prj,
-                                             metros10 %>% project_shp(.))
-
-parks_metros_intersection <- parks_metros_intersection %>%  
-  mutate(intersection_area = st_area(.)) %>%
-  group_by(GEOID10) %>%
-  summarize(parks = n(),
-            total_park_area = sum(SQMI),
-            total_park_area2 = sum(intersection_area)
-            )  %>% 
-  st_set_geometry(NULL) %>%
-  left_join(., metros10, by = "GEOID10")
+## Create parks by metros dataset
+# parks_per_metro <-  usa_parks_prj %>%
+#   st_intersection(., metros10 %>% st_transform(., albersea)
+#                   ) %>%
+#   mutate(
+#     intersection_area = st_area(.),
+#     area_sqmi = as.numeric(set_units(intersection_area, mi^2))
+#     ) %>%
+#   group_by(GEOID10) %>%
+#   summarize(parks = n(),
+#             total_park_area = sum(SQMI),
+#             total_park_area_sqme = sum(intersection_area),
+#             total_park_area_sqmi = sum(area_sqmi)
+#             )  %>%
+#   st_set_geometry(NULL) %>%
+#   left_join(., metros10, by = "GEOID10")
+# saveRDS(parks_per_metro, "parks_per_metro_2021.rds")
+parks_per_metro <- readRDS("parks_per_metro_2021.rds")
 
 ```
 
 ```{r parks per metros intersection}
 ##st_intersection version
-parks_metros_intersection %>% 
-  select(parks, total_park_area, total_park_area2, NAME10, GEOID10) %>%
+parks_per_metro %>% 
+  select(parks, total_park_area_sqmi, NAME10, GEOID10) %>%
   arrange(-parks)
 
 
 # FIND METROS/MICROS WITHOUT PARK SPACE
 metros10 %>%
-  filter(!GEOID10 %in% parks_metros_intersection$GEOID10) %>%
+  filter(!GEOID10 %in% parks_per_metro$GEOID10) %>% 
+  st_set_geometry(NULL) %>%
   select(GEOID10:NAMELSAD10)
 
 ```
