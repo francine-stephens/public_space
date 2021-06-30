@@ -73,12 +73,12 @@ readRenviron("~/.Renviron")
 
 
 ## SHAPEFILE IMPORTS
-# cbg10 <- st_read(paste0(shp_repo,
-#                         shp2010_path,
-#                         cbg10_path,
-#                         "US_blck_grp_2010.shp"), 
-#                  quiet = FALSE)
-# 
+cbg10 <- st_read(paste0(shp_repo,
+                        shp2010_path,
+                        cbg10_path,
+                        "US_blck_grp_2010.shp"),
+                 quiet = FALSE)
+
 # tracts10 <- st_read(paste0(shp_repo, 
 #                            tracts10_path,
 #                            "US_tract_2010.shp"),
@@ -687,3 +687,166 @@ div(class = "metros_without_parks_reactable",
 
 ```
 
+
+## Demographics & Distribution of Parks
+
+**Parks Aggregated to Philadelphia Block Groups**
+```{r intersect parks and cbgs}
+# CROP CBGs TO SELECT LOCATIONS 
+philly_county_cbg <- cbg10 %>% 
+  filter(STATEFP10 == "42" & COUNTYFP10 == "101")
+  
+bexar_county_cbg <- cbg10 %>%
+  filter(STATEFP10 == "48" & COUNTYFP10 == "029")
+
+
+parks_per_philly_cbgs <-  usa_parks_prj %>%
+  st_intersection(., philly_county_cbg %>% st_transform(., albersea)
+                  ) %>%
+  mutate(
+    intersection_area = st_area(.),
+    area_sqmi = as.numeric(set_units(intersection_area, mi^2))
+    ) %>%
+  group_by(GEOID10) %>%
+  summarize(parks = n(),
+            total_park_area = sum(SQMI),
+            total_park_area_sqme = sum(intersection_area),
+            total_park_area_sqmi = sum(area_sqmi)
+            )  %>%
+  mutate_if(is.numeric, ~replace(., is.na(.), 0))
+parks_per_philly_cbgs <- parks_per_philly_cbgs %>%
+  st_set_geometry(NULL)
+
+parks_per_bexar_cbgs <-  usa_parks_prj %>%
+  st_intersection(., bexar_county_cbg %>% st_transform(., albersea)
+                  ) %>%
+  mutate(
+    intersection_area = st_area(.),
+    area_sqmi = as.numeric(set_units(intersection_area, mi^2))
+    ) %>%
+  group_by(GEOID10) %>%
+  summarize(parks = n(),
+            total_park_area = sum(SQMI),
+            total_park_area_sqme = sum(intersection_area),
+            total_park_area_sqmi = sum(area_sqmi)
+            )  %>%
+  mutate_if(is.numeric, ~replace(., is.na(.), 0))
+parks_per_bexar_cbgs <- parks_per_bexar_cbgs %>%
+  st_set_geometry(NULL)
+
+# ADD GEOMETRY TO SELECT LOCATIONS 
+parks_per_philly_cbgs <- philly_county_cbg %>%
+  left_join(., parks_per_philly_cbgs, by = "GEOID10") %>%
+  mutate_if(is.numeric, ~replace(., is.na(.), 0))
+
+parks_per_bexar_cbgs <- bexar_county_cbg %>%  
+  left_join(., parks_per_bexar_cbgs, by = "GEOID10") %>%
+  mutate_if(is.numeric, ~replace(., is.na(.), 0))
+
+philly_pal <- colorNumeric(
+  palette = "Greens",
+  domain = parks_per_philly_cbgs$parks
+)
+philly_area_pal <- colorNumeric(
+  palette = "Greens",
+  domain = parks_per_philly_cbgs$total_park_area_sqmi
+)
+
+leaflet() %>% 
+  addMapboxTiles(
+    style_id = "streets-v11",
+    username = "mapbox"
+  ) %>%
+  addPolygons(
+    data = philly %>% st_transform(., wgs),
+    fillColor = "transparent",
+    color = "black"
+  ) %>% 
+  addPolygons(
+    data = parks_per_philly_cbgs %>% st_transform(., wgs),
+    label = ~parks,
+    fillColor = ~philly_pal(parks),
+    weight = 2,
+    opacity = 1,
+    color = "black",
+    fillOpacity = 0.7,
+    group = "Number of Parks"
+  )  %>% 
+  addPolygons(
+    data = parks_per_philly_cbgs %>% st_transform(., wgs),
+    label = ~paste0(format(total_park_area_sqmi, digits = 2, big.mark = ","), " mi^2"),
+    fillColor = ~philly_area_pal(parks),
+    weight = 2,
+    opacity = 1,
+    color = "black",
+    fillOpacity = 0.7,
+    group = "Park Area"
+  ) %>% 
+  addLayersControl(
+    overlayGroups = c("Number of Parks", "Park Area"),
+    position = "topright",
+    options = layersControlOptions(collapsed = F)
+) %>%
+  addLegend("bottomright", pal = philly_pal, title="Number of Parks",
+            values = parks_per_philly_cbgs$parks, group="Number of Parks") %>%
+  addLegend("bottomright", pal = philly_area_pal, title="Park Area (Sq Mi.)",
+            values = parks_per_philly_cbgs$total_park_area_sqmi, group="Park Area")
+
+```
+
+**Parks Aggregated to Bexar County, TX Census Block Groups**
+
+San Antonio, TX is the county seat. The city of San Antonio is not coterminous with Bexar County.  *Note: Return and clip to San Antonio city limits*
+```{r parks per cbgs in Bexar}
+bexar_pal <- colorNumeric(
+  palette = "Greens",
+  domain = parks_per_bexar_cbgs$parks
+)
+bexar_area_pal <- colorNumeric(
+  palette = "Greens",
+  domain = parks_per_bexar_cbgs$total_park_area_sqmi
+)
+
+leaflet() %>% 
+  addMapboxTiles(
+    style_id = "streets-v11",
+    username = "mapbox"
+  ) %>%
+  addPolygons(
+    data = parks_per_bexar_cbgs %>% st_transform(., wgs),
+    label = ~parks,
+    fillColor = ~bexar_pal(parks),
+    weight = 2,
+    opacity = 1,
+    color = "black",
+    fillOpacity = 0.7,
+    group = "Number of Parks"
+  )  %>% 
+  addPolygons(
+    data = parks_per_bexar_cbgs %>% st_transform(., wgs),
+    label = ~paste0(format(total_park_area_sqmi, digits = 1, big.mark = ","), " mi^2"),
+    fillColor = ~bexar_area_pal(parks),
+    weight = 2,
+    opacity = 1,
+    color = "black",
+    fillOpacity = 0.7,
+    group = "Park Area"
+  ) %>% 
+  addLayersControl(
+    overlayGroups = c("Number of Parks", "Park Area"),
+    position = "topright",
+    options = layersControlOptions(collapsed = F)
+) %>%
+  addLegend("bottomright", pal = bexar_pal, title="Number of Parks",
+            values = parks_per_bexar_cbgs$parks, group="Number of Parks") %>%
+  addLegend("bottomright", pal = bexar_area_pal, title="Park Area (Sq Mi.)",
+            values = parks_per_bexar_cbgs$total_park_area_sqmi, group="Park Area")
+
+```
+
+
+```{r demographics for cbgs} 
+# Avg PS per Min nhood, Avg PS per white nhood
+# MedHHINC of nhoods with parks
+
+```
